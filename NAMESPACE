@@ -1,0 +1,49 @@
+
+useDynLib(stsm)
+
+export(
+Brent.fmin,
+barrier.eval,
+datagen.stsm,
+force.defpos,
+init.vars,
+KFconvar,
+linesearch,
+maxclik.fd.scoring,
+maxlik.em,
+maxlik.fd.optim,
+maxlik.fd.scoring,
+maxlik.td.optim,
+mcloglik.fd,
+mcloglik.fd.deriv,
+mcloglik.fd.grad,
+mloglik.fd,
+mloglik.fd.deriv,
+mloglik.fd.grad,
+mloglik.td,
+mloglik.td.grad,
+mloglik.td.deriv,
+maxlik.td.scoring,
+step.maxsize
+)
+
+importFrom(stats, confint, fitted, logLik, predict, residuals, tsdiag, tsSmooth, vcov)
+import(KFKSDS, stsm.class)
+
+S3method(coef, stsmFit)
+S3method(confint, stsmFit)
+S3method(fitted, stsm)
+S3method(fitted, stsmFit)
+S3method(logLik, stsm)
+S3method(plot, stsmComponents)
+S3method(plot, stsmPredict)
+S3method(plot, stsmSmooth)
+S3method(print, stsmFit)
+S3method(predict, stsm)
+S3method(predict, stsmFit)
+S3method(residuals, stsmFit)
+S3method(tsdiag, stsmFit)
+S3method(tsSmooth, stsm)
+S3method(tsSmooth, stsmFit)
+S3method(vcov, stsmFit)
+S3method(vcov, stsm)

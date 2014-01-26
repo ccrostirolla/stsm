@@ -6,7 +6,7 @@ void KFKSDS_steady_v2eps (int *dim, double *sy, double *sZ, double *sZtZ,
   double *tol, int *maxiter, double *ksconvfactor,
   double *res)
 {
-  int i, ip1, n = dim[0], m = dim[2], ir = dim[3], 
+  int i, ip1, n = dim[0], m = dim[2], //ir = dim[3], 
     convref, nmconvref, nm1 = n-1;
   
   //double v[n], f[n], invf[n], vof[n];
@@ -125,13 +125,13 @@ void KFKSDS_steady_v2eta (int *dim, double *sy, double *sZ, double *sZtZ,
   double *tol, int *maxiter, double *ksconvfactor,
   double *res)
 {
-  int i, ip1, n = dim[0], m = dim[2], ir = dim[3], 
+  int i, ip1, n = dim[0], m = dim[2], //ir = dim[3], 
     id = dim[6], convref, nmconvref;
   
   std::vector<double> v(n), f(n), invf(n), vof(n);
   //double v[n], f[n], invf[n], vof[n], Vsq = pow(V[0], 2),
   double Vsq = pow(V[0], 2), 
-    etahat, vareta, mll;
+    etahat, vareta = 0.0, mll;
   double summisc = 0.0;
 
   gsl_vector_view Z = gsl_vector_view_array(sZ, m);
@@ -163,7 +163,7 @@ void KFKSDS_steady_v2eta (int *dim, double *sy, double *sZ, double *sZtZ,
   nmconvref = n - convref;
 
   gsl_matrix * Mmm = gsl_matrix_alloc(m, m);
-  gsl_matrix_view maux1, maux2;
+  //gsl_matrix_view maux1, maux2;
   
   for (i = n-1; i > -1; i--)
   {

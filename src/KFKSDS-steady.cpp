@@ -8,9 +8,9 @@ void KF_steady (int *dim, double *sy, double *sZ, double *sT, double *sH,
   gsl_matrix *K, std::vector<gsl_matrix*> *L,
   double *tol, int *maxiter)
 {
-  int i, s, n = dim[0], p = dim[1], m = dim[2], r = dim[3], 
-    conv = 0, counter = 0;
-  double Kisum, Kim1sum;
+  //int s, p = dim[1], r = dim[3];
+  int i, n = dim[0], m = dim[2], conv = 0, counter = 0;
+  //double Kisum, Kim1sum = 0.0;
   
   mll[0] = 0.0;
 
@@ -106,22 +106,22 @@ void KF_steady (int *dim, double *sy, double *sZ, double *sT, double *sH,
 
     // check if convergence to the steady state has been reached
 
-    if (i > 0 & conv == 0)
+    if ((i > 0) & (conv == 0))
     {
-      if (i == 1)
-      {
-        Kim1sum = 0.0;
-      }
+      //if (i == 1)
+      //{
+      //  Kim1sum = 0.0;
+      //}
 
       Kri = gsl_matrix_row(K, i);
       std::vector<double> vm((&Kri.vector)->data, (&Kri.vector)->data + m);
-      Kisum = std::accumulate(vm.begin(), vm.end(), 0.0);
+      //Kisum = std::accumulate(vm.begin(), vm.end(), 0.0);
 
       if (fabs(f->at(i) - f->at(i-1)) < *tol)
       {
         counter += 1;
       }
-      Kim1sum = Kisum;
+      //Kim1sum = Kisum;
       
       if (counter == *maxiter) {
         conv = 1;

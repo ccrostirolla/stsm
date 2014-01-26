@@ -1,4 +1,4 @@
-6ff3b4e2b0e6e5c8f25237a33a717d1f *DESCRIPTION
+c84d2983b893c521af67c4a040f8fdcd *DESCRIPTION
 41895400c75c7fedbbf733eec2fe0d61 *NAMESPACE
 dea5105ff4659819bedac46910aaedc8 *R/EM.R
 9016826cc90b9c38f5fd99aa9174fda2 *R/barrier.R
@@ -48,8 +48,8 @@ e5b7ffb00b0b715c864eeca1eadec36e *man/methods-stsmFit.Rd
 bbc4665b154cd56fcfdd2cf20be2fa80 *man/mloglik-td.Rd
 513028d62643926143a38c4a2f2ab4c6 *man/sim-data.Rd
 9091a4b7cfff9ff9d67f5adb4ba592f4 *man/stsm-package.Rd
-8fd2b04d56fa04a6c9c706215678c908 *src/KFKSDS-steady-v2.cpp
+6771c1df5f126b0f61bf8a4ebf2ec5e6 *src/KFKSDS-steady-v2.cpp
 7b61e88c038458ccf0780852104f4b51 *src/KFKSDS-steady-v2.h
-fc7364a949b7e7be7c73a306a0121154 *src/KFKSDS-steady.cpp
+c965c05224fed93a7565e14ce9326017 *src/KFKSDS-steady.cpp
 a6b3c2a7a63908a7bc90f7e84cc88535 *src/KFKSDS-steady.h
 31b2b7e91345803d8f59d2d58902623a *src/Makevars

@@ -1,17 +1,22 @@
 
+##FIXME see other interface for parallel in windows, Sys.info()["sysname"]=="Windows"
+
 maxlik.em <- function(model, type = c("standard", "modified", "mix"), 
   tol = 0.001, maxiter = 300, kfconv = c(0, 10, 1),  
   ur.maxiter = 1000, r.interval = c(0.001, var(model@y)*0.75, 20),
-  mod.steps = seq(3, maxiter, 10))
+  mod.steps = seq(3, maxiter, 10), 
+  parallel = FALSE, num.cores = NULL)
 {
   type <- match.arg(type)[1]
 
   switch(type, 
     "standard" = res <- EM.v1(model, tol, maxiter, kfconv),
-    "modified" = res <- EM.v2(model, tol, maxiter, ur.maxiter, r.interval, kfconv),
+    "modified" = res <- EM.v2(model, tol, maxiter, ur.maxiter, 
+      r.interval, kfconv, parallel, num.cores),
     "mix" = {
       mix <- list(mod.steps = mod.steps, nj = 1)
-      res <- EM.v4(model, tol, maxiter, mix, ur.maxiter, r.interval, kfconv) })
+      res <- EM.v4(model, tol, maxiter, mix, ur.maxiter, 
+        r.interval, kfconv, parallel, num.cores) })
 
   res
 }
@@ -130,7 +135,8 @@ EM.v1 <- function(model, tol = 0.001, maxiter = 300,
 }
 
 EM.v2 <- function(model, tol = 0.001, maxiter = 300, ur.maxiter = 1000, 
-   r.interval = c(0.001, var(model@y)*0.75, 20), kfconv = c(0.001, 10, 1))
+   r.interval = c(0.001, var(model@y)*0.75, 20), kfconv = c(0.001, 10, 1),
+   parallel = FALSE, num.cores = NULL)
 {
   newpars <- model@pars
   Mpars <- rbind(newpars)
@@ -147,6 +153,30 @@ EM.v2 <- function(model, tol = 0.001, maxiter = 300, ur.maxiter = 1000,
   tmp <- as.list(model@pars)
   nms <- names(tmp)
 
+  if (parallel)
+  {
+    names(iv2) <- names(iv1) <- nms
+
+    search.root <- function(id)
+    {
+      #id <- nms[i]
+      res <- try(uniroot(f = elogdens.grad.v2,
+        interval = c(iv1[id], iv2[id]),
+        model = model, id = id, kfconv = kfconv,
+        maxiter = ur.maxiter)$root, silent = TRUE)
+
+      if (inherits(res, "numeric")) {
+        return(res)
+      } else
+      if (inherits(res, "try-error")) {
+        return(NA)  # unlist(list(a=1,b=NULL,c=3)) would remove the second element
+      } else stop("unexpected class of 'tmp'.")
+    }
+
+    if (is.null(num.cores))
+      num.cores <- detectCores()
+  }
+
   while (cond && iter < maxiter)
   {
     oldpars <- model@pars
@@ -158,29 +188,41 @@ EM.v2 <- function(model, tol = 0.001, maxiter = 300, ur.maxiter = 1000,
       iv2 <- apply(ivaux, 2, max)
     }
 
-    for (i in seq(along = tmp))
+    if (!parallel)
     {
-      id <- nms[i]
+      for (i in seq(along = tmp))
+      {
+        id <- nms[i]
 
-      tmp[[id]] <- try(uniroot(f = elogdens.grad.v2,
-        interval = c(iv1[i], iv2[i]),
-        model = model, id = id, kfconv = kfconv,
-        maxiter = ur.maxiter)$root, 
-        silent = TRUE)
+        tmp[[id]] <- try(uniroot(f = elogdens.grad.v2,
+          interval = c(iv1[i], iv2[i]),
+          model = model, id = id, kfconv = kfconv,
+          maxiter = ur.maxiter)$root, 
+          silent = TRUE)
 
-      if (class(tmp[[id]]) == "numeric") {
-        newpars[id] <- tmp[[id]]
-      } else
-      if (class(tmp[[id]]) == "try-error") { # do nothing here
-      } else stop("unexpected class of 'tmp'.")
+        if (class(tmp[[id]]) == "numeric") {
+          newpars[id] <- tmp[[id]]
+        } else
+        if (class(tmp[[id]]) == "try-error") { # do nothing here
+        } else stop("unexpected class of 'tmp'.")
+      }
+
+      ref <- !unlist(lapply(tmp, is.numeric))      
+
+    } else {
+      tmp <- mclapply(X = nms, FUN = search.root, mc.cores = num.cores)
+      tmp <- unlist(tmp)
+      ref <- is.na(tmp)
+      id <- !ref
+      if (any(id))
+        newpars[id] <- tmp[id]
     }
 
     # after updating the parameters where a root was found,
     # swith to step.EM.v1 for those parameters where a root was not found
 
-    ref <- unlist(lapply(tmp, is.numeric))
-
-    ref <- !ref
+#     ref <- unlist(lapply(tmp, is.numeric))
+#     ref <- !ref
     if (any(ref))
     {
       newpars[ref] <- step.EM.v1(model, kfconv)[ref]
@@ -200,7 +242,8 @@ EM.v2 <- function(model, tol = 0.001, maxiter = 300, ur.maxiter = 1000,
 EM.v4 <- function(model, tol = 0.001, maxiter = 300,   
   opt = list(mod.steps = seq(3, maxiter, 10), nj = 1),
   ur.maxiter = 1000, r.interval = c(0.001, var(model@y)*0.75, 20),
-  kfconv = c(0.001, 10, 1))
+  kfconv = c(0.001, 10, 1),
+  parallel = FALSE, num.cores = NULL)
 {
   Mpars <- rbind(model@pars)
   calls.v1 <- model@pars
@@ -219,7 +262,7 @@ EM.v4 <- function(model, tol = 0.001, maxiter = 300,
 
     if (iter %in% ref)
     {
-      sout <- EM.v2(model, tol, nj, ur.maxiter, r.interval, kfconv)
+      sout <- EM.v2(model, tol, nj, ur.maxiter, r.interval, kfconv, parallel, num.cores)
       newpars <- sout$pars
       calls.v1 <- calls.v1 + sout$calls.v1
       iter <- iter + sout$iter

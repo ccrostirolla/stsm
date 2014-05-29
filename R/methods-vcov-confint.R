@@ -26,7 +26,8 @@ vcov.stsmFit <- function(object,
   {
     if (!is.null(object$hessian)) {
       res <- solve(object$hessian)
-      rownames(res) <- colnames(res) <- names(object$model@pars)
+      nms <- c(names(object$model@pars), names(object$xreg$coef))
+      rownames(res) <- colnames(res) <- nms
       return(res)
     } else {
       type <- "hessian"
@@ -56,7 +57,7 @@ vcov.stsmFit <- function(object,
       {
         type <- "infomat"
         doim <- TRUE #type <- "infomat"
-        warning("The analytical Hessian is not available for the time domain version.",
+        warning("The analytical Hessian is not available for the time domain version. ",
         "The information matrix was used instead, changed to ", 
         sQuote("type = 'infomat'"), ".")
       }

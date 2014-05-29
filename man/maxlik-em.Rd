@@ -13,7 +13,8 @@ model by means of the Expectation-Maximization algorithm.
 maxlik.em(model, type = c("standard", "modified", "mix"), 
   tol = 0.001, maxiter = 300, kfconv = c(0, 10, 1),  
   ur.maxiter = 1000, r.interval = c(0.001, var(model@y)*0.75, 20),
-  mod.steps = seq(3, maxiter, 10))
+  mod.steps = seq(3, maxiter, 10), 
+  parallel = FALSE, num.cores = NULL)
 }
 
 \arguments{
@@ -30,6 +31,10 @@ Ignored with \code{type = "standard"}.}
 root finding procedure.}
 \item{mod.steps}{a vector indicating the iterations at which the modified EM algorithm 
 is to be run. Only for \code{type = "mix"}.}
+\item{parallel}{logical. If \code{TRUE} the process is run in parallel by means of function 
+\code{\link[parallel]{mclapply}} in package \pkg{parallel}.}
+\item{num.cores}{an optional numeric. The number of processes executed in parallel if 
+\code{parallel} is \code{TRUE}. By default it is set equal to the number of CPU cores.}
 }
 
 \details{
@@ -118,7 +123,7 @@ An Approach to Time Series Smoothing and Forecasting Using the EM Algorithm.
 # the modified version converges in fewer iterations, yet it involves 
 # more computations
 data("llmseas")
-m <- stsm.model(model = "llm+seas", y = llmseas[,1], 
+m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, 
   pars = c(var1 = 1, var2 = 1, var3 = 1))
 
 # original version

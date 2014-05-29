@@ -2,8 +2,8 @@
 useDynLib(stsm)
 
 export(
-Brent.fmin,
 barrier.eval,
+Brent.fmin,
 datagen.stsm,
 force.defpos,
 init.vars,
@@ -24,11 +24,20 @@ mloglik.td,
 mloglik.td.grad,
 mloglik.td.deriv,
 maxlik.td.scoring,
-step.maxsize
+step.maxsize,
+stsmFit
 )
 
+importFrom(parallel, detectCores)
+importFrom(parallel, mclapply)
 importFrom(stats, confint, fitted, logLik, predict, residuals, tsdiag, tsSmooth, vcov)
-import(KFKSDS, stsm.class)
+importFrom(KFKSDS, KalmanFilter)
+importFrom(KFKSDS, KF)
+importFrom(KFKSDS, KF.deriv.C)
+importFrom(KFKSDS, KS)
+importFrom(KFKSDS, make.KF.args)
+
+import(stsm.class)
 
 S3method(coef, stsmFit)
 S3method(confint, stsmFit)

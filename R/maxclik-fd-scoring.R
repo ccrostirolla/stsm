@@ -49,6 +49,7 @@ maxclik.fd.scoring <- function(m, step = NULL,
     pg <- m@ssd
 
   # spectral generating function (constants)
+##FIXME add if is.null(m@sgfc) then define
 
   Mpars <- if (control$trace) rbind(c(m@cpar, m@pars), 
     matrix(nrow = control$maxit + 1, ncol = length(m@pars) + 1)) else NULL

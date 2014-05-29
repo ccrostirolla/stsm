@@ -2,32 +2,27 @@
 \docType{data}
 \alias{sim-data}
 \alias{llmseas}
-\alias{llm}
 
-\title{Simulated Data Sets}
+\title{Simulated Data}
 
 \description{
-Time series simulated from the local level model and the local level plus seasonal model.
-Each data set consists of \eqn{1000} series of \eqn{120} observations.
-These data are used in the package's vignette to illustrate the performance of 
-the algorithms.
+Time series simulated from the local level plus seasonal model.
 }
 
 \usage{
-llm
 llmseas
 }
 
 \format{
-A \eqn{1000\times 120} matrix containing by column each simulated series.
+A time series of length \eqn{120}.
 }
 
 \source{
-The scripts used to generate the data are stored in the files
-\file{stsm/inst/datagen-llm.R} and \file{stsm/inst/datagen-llmseas.R}.
-The series in the data set \code{llmseas} are simulated by means of 
-\code{\link{datagen.stsm}}. See the examples in the documentation of 
-that function for details.
+The scripts to generate this and other series used in the vignette 
+are stored in the files \file{stsm/inst/datagen-llm.R} and 
+\file{stsm/inst/datagen-llmseas.R}. 
+The first series returned by the latter script is the series that is 
+loaded by \code{data("llmseas")}.
 }
 
 \keyword{datasets}

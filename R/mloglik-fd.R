@@ -1,5 +1,7 @@
 
-mloglik.fd <- function(x, model, 
+##FIXME TODO analytical derivatives when xreg!=NULL (see vcov expression in H89)
+
+mloglik.fd <- function(x, model, xreg = NULL,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
 {
   if (!missing(x)) if (!is.null(x))
@@ -7,6 +9,33 @@ mloglik.fd <- function(x, model,
 
   n <- length(model@diffy)
   pi2 <- 2 * pi
+
+  if (!is.null(xreg))
+  {
+    #stopifnot((NROW(xreg) == length(model@y)) || (NROW(xreg) == length(model@diffy)))
+
+    #xregcoefs <- model@pars[grepl("^xreg", names(model@pars))]
+    allpars <- c(model@pars, model@nopars)
+    id <- match(colnames(xreg), names(allpars))
+    if (any(is.na(id)))
+      stop("column names of ", sQuote("xreg"), " do not match the names of the parameters")
+    xregcoefs <- allpars[id]
+
+    ##NOTE
+    #xreg is overwritten 
+    #an object called for instance "dxreg" could be created but it would involve 
+    #two objects with the same content;
+    #no additional arguments added to function, xreg or differenced xreg is 
+    #deduced from the length/nrows; e.g., xreg is passed already appropriately 
+    #differenced by function maxlik.fd.optim
+    if (NROW(xreg) == length(model@y)) {
+      xreg <- model@fdiff(xreg, frequency(model@y))
+    }
+
+    model@diffy <- model@diffy - xreg %*% cbind(xregcoefs)
+    #in general update only if (!is.null(model@ssd)
+    model@ssd <- as.vector(Mod(fft(model@diffy))^2 / (pi2 * n))
+  }
 
   if (is.null(model@ssd)) {
     pg <- Mod(fft(model@diffy))^2 / (pi2 * n)
@@ -45,6 +74,8 @@ mloglik.fd <- function(x, model,
 
   mll
 }
+
+##FIXME TODO for non null xreg or at least adapt vcov() to it
 
 mloglik.fd.deriv <- function(model, 
   gradient = TRUE, hessian = TRUE, infomat = TRUE, modcovgrad = TRUE,
@@ -202,8 +233,8 @@ if (model@model %in% c("cycle", "trend-cycle")) {
 
 mloglik.fd.grad <- function(x, model,
   barrier = list(type = c("1", "2"), mu = 0),
-  inf)
-#argument 'inf' is not used here but it is needed when used within optim 
+  inf, xreg)
+#arguments 'inf' and 'xreg' are not used here but it is needed when used within optim 
 #'maxlik.fd.optim' where this function is passed as the gradient
 {
   if (!missing(x)) if (!is.null(x))

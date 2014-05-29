@@ -8,6 +8,8 @@ coef.stsmFit <- function(object, ...) {
 print.stsmFit <- function(x, digits = max(3L, getOption("digits") - 3L), 
   vcov.type = c("hessian", "infomat", "OPG", "sandwich", "optimHessian"), ...)
 {
+  vcov.type <- match.arg(vcov.type)
+  
   cat("Call:", deparse(x$call, width.cutoff = 75L), "", sep = "\n")
   cat("Variance parameters:\n")
   rescale <- !is.null(x$model@cpar)
@@ -17,6 +19,7 @@ print.stsmFit <- function(x, digits = max(3L, getOption("digits") - 3L),
   #to see whether a choice was made or not and then set default value
   if (x$model@model != "trend+ar2")
   {
+##FIXME vcov is computed whenever print is called
     res <- rbind(pars[ord], sqrt(diag(vcov(x, type = vcov.type)))[ord])
     rownames(res) <- c("Estimate", "Std. error")
     print.default(res, print.gap = 2L, digits = digits, ...)
@@ -25,19 +28,41 @@ print.stsmFit <- function(x, digits = max(3L, getOption("digits") - 3L),
     rownames(res) <- c("Estimate")
     print.default(res, print.gap = 2L, digits = digits, ...)
   }
+  
+##FIXME TODO std.error
+  if (!is.null(x$xreg))
+  {
+    cat("\nCoefficients of regressor variables:\n")
+    if (is.null(x$xreg$stde))
+    {
+      if (vcov.type == "optimHessian") {
+        # this requires having run maxlik.td.optim() with option hessian=TRUE
+        stde <- sqrt(diag(vcov(x, type = "optimHessian"))[names(x$xreg$coef)])
+        res <- rbind(x$xreg$coef, stde)
+        rownames(res) <- c("Estimate", "Std. error")
+      } else {
+        res <- rbind(x$xreg$coef)
+        rownames(res) <- c("Estimate")
+      }
+    } else {
+      res <- rbind(x$xreg$coef, x$xreg$stde)
+      rownames(res) <- c("Estimate", "Std. error")
+    }
+    print.default(res, print.gap = 2L, digits = digits, ...)
+  }
 
   cat("\nLog-likelihood:", 
     round(x$loglik, digits = digits), "\n")
   #print.default(x$loglik, print.gap = 2L, digits = digits, ...)
 
-  cat("Convergence:", as.numeric(x$convergence))
-  if(!is.null(x$message))
-    cat("\n", x$message)
+  cat("Convergence:", as.numeric(x$convergence), "\n")
+  if (!is.null(x$message) && x$message != "")
+    cat(x$message, "\n")
 
   if (grepl("optim", x$call[1])) {
-    cat("\nNumber of function calls:", x$iter[1], "\n")
+    cat("Number of function calls:", x$iter[1], "\n")
   } else
-    cat("\nNumber of iterations:", x$iter, "\n")
+    cat("Number of iterations:", x$iter, "\n")
 
   invisible(x)
 }
@@ -53,20 +78,26 @@ fitted.stsm <- function(object, version = c("KFKSDS", "stats"), ...)
   switch(version,
 
     "KFKSDS" = {
-
       kf <- KFKSDS::KF(y, ss)
 
-      states <- kf$a.upd[,id]
+##FIXME return matrix in "llm" model for kf$a.upd in KFKSDS, arrange also kf$P.upd
+      if (is.null(dim(kf$a.upd))) {
+        states <- cbind(kf$a.upd[id])
+      } else
+        states <- kf$a.upd[,id]
       P <- matrix(nrow = length(y), ncol = length(id))
-      for (i in seq_along(y))
-        P[i,] <- sqrt(diag(kf$P.upd[id,id,i]))
+      if (is.null(dim(kf$P.upd))) {
+        for (i in seq_along(y))
+          P[i,] <- sqrt(kf$P.upd[i])
+      } else
+        for (i in seq_along(y))
+          P[i,] <- sqrt(diag(kf$P.upd[id,id,i]))
       P <- ts(P, start = start(y)[1L], frequency = frequency(y))
 
       resid <- kf$v / sqrt(kf$f)
     },
 
     "stats" = { # based on stats::StructTS
-
       mod <- list(Z = ss$Z, a = ss$a0, P = ss$P0, T =  ss$T, 
         V =  ss$Q, h =  ss$H, Pn = ss$P0)
       z <- stats::KalmanRun(y, mod, nit = -1, fast = TRUE)

@@ -1,5 +1,5 @@
 
-maxlik.td.scoring <- function(m, step = NULL, 
+maxlik.td.scoring <- function(m, xreg = NULL, step = NULL, 
   KF.args = list(), check.KF.args = TRUE,
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   control = list(maxit = 100, tol = 0.001, trace = FALSE, silent = FALSE), 
@@ -15,8 +15,8 @@ maxlik.td.scoring <- function(m, step = NULL,
   {
     m <- set.pars(m, get.pars(m) + x * pd)
 
-    -logLik(object = m, domain = "time", 
-      td.args = list(P0cov = FALSE, t0 = 1), FALSE,
+    -logLik(object = m, domain = "time", xreg = NULL,
+      td.args = list(KF.version = "KFKSDS", P0cov = FALSE, t0 = 1), FALSE,
       barrier = list(mu = 0), inf = 99999)
   }
 
@@ -41,10 +41,33 @@ maxlik.td.scoring <- function(m, step = NULL,
   conv.e1 <- FALSE
   iter <- 0
 
-  # iterative process
+  # regressor variables (define constant variables)
 
-  Mpars <- if (control$trace) rbind(m@pars, 
-    matrix(nrow = control$maxit + 1, ncol = length(m@pars))) else NULL
+  ##NOTE
+  # this block is based on same block in function maxlik.fd.scoring()
+
+  if (!is.null(xreg))
+  {
+    # check for safety if a single regressor is passed as a vector
+    if (is.null(dim(xreg)))
+      xreg <- data.matrix(xreg)
+    stopifnot(nrow(xreg) == length(m@y))
+
+    dxreg <- m@fdiff(xreg, frequency(m@y))
+    y0 <- m@y
+
+    xregcoefs <- coef(lm.fit(x = dxreg, y = m@diffy))
+
+    m@y <- y0 - xreg %*% xregcoefs
+
+  } else
+    xregcoefs <- NULL
+
+  # storage matrices for tracing information
+
+  Mpars <- if (control$trace) rbind(c(m@pars, xregcoefs), 
+    matrix(nrow = control$maxit + 1, 
+      ncol = length(m@pars) + max(0, ncol(xreg)))) else NULL
   steps <- if (control$trace) rep(NA, control$maxit + 2) else NULL
 
 if (debug)
@@ -55,6 +78,8 @@ if (debug)
   cat(paste("\niter =", iter, "logLik =", round(val, 4), "\n"))
   print(get.pars(m))
 }
+
+  # begin iterative process
 
 j1 <- 1
 
@@ -131,13 +156,31 @@ if (debug)
         "(not necessarily the same parameter)."))
     }
 
-    if (control$trace)
+    # coefficients of regressor variables
+
+    if (!is.null(xreg))
     {
-      Mpars[iter+2,] <- m@pars
-      steps[iter+1] <- lambda
+      ss <- char2numeric(m)
+      kf <- KF(y0, ss)
+      ks <- KS(y0, ss, kf)
+      dy <- m@fdiff(rowSums(ks$ahat), frequency(m@y))
+      xregcoefs <- coef(lm.fit(x = dxreg, y = dy))
+
+      if (!convergence)
+      {
+        m@y <- y0 - xreg %*% xregcoefs
+      } 
     }
 
+    # trace
+
     iter <- iter + 1
+
+    if (control$trace)
+    {
+      Mpars[iter+1,] <- c(m@pars, xregcoefs)
+      steps[iter] <- lambda
+    }
 
 if (debug)
 {
@@ -170,15 +213,31 @@ if (debug && !is.null(m@lower) && !is.null(m@upper))
   # output
 
   # the barrier term is not added to the final likelihood value
-  val <- logLik(object = m, domain = "time", 
+  # xreg is set to NULL and m@y <- y0 - xreg %*% xregcoefs (done above)
+  # is used, xreg coefficients are not part of the "stsm" model
+  val <- logLik(object = m, domain = "time", xreg = NULL,
     td.args = c(KF.args, KF.version = "KFKSDS"), check.td.args = TRUE,
     barrier = list(mu = 0), inf = 99999)
+
+  if (!is.null(xreg))
+  {
+    tmp <- coef(summary(lm(dy ~ 0 + dxreg)))
+
+    xregcoefs <- tmp[,"Estimate"]
+    xregstde <- tmp[,"Std. Error"]
+##FIXME return xregtstat also in function maxlik.fd.scoring
+    xregtstat <- tmp[,"t value"]
+    names(xregcoefs) <- names(xregstde) <- names(xregtstat) <- colnames(xreg)
+    xreg <- list(coef = xregcoefs, stde = xregstde, tstat = xregtstat)
+
+    m@y <- y0
+  }
 
   if (conv.e1)
     convergence <- FALSE
 
-  res <- c(list(call = mcall,
-    init = pars0, pars = m@pars, model = m, loglik = val,
+  res <- c(list(call = mcall, model = m, 
+    init = pars0, pars = m@pars, xreg = xreg, loglik = val,
     convergence = convergence, iter = iter, message = "",
     Mpars = Mpars, steps = steps), lsres)
   class(res) <- "stsmFit"

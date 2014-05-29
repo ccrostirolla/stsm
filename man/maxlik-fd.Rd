@@ -13,16 +13,18 @@ algorithm available in \code{\link[stats]{optim}}.
 }
 
 \usage{
-maxlik.fd.optim(m, barrier = list(type = c("1", "2"), mu = 0), inf = 99999, 
+maxlik.fd.optim(m, xreg = NULL,
+  barrier = list(type = c("1", "2"), mu = 0), inf = 99999, 
   method = c("BFGS", "L-BFGS-B", "Nelder-Mead", "CG", "SANN"), 
   gr = c("analytical", "numerical"), optim.control = list(), hessian = TRUE)
 
-maxlik.fd.scoring(m, step = NULL, information = c("expected", "observed", "mix"),
+maxlik.fd.scoring(m, xreg = NULL, step = NULL, 
+  information = c("expected", "observed", "mix"),
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   barrier = list(type = c("1", "2"), mu = 0), 
   control = list(maxit = 100, tol = 0.001, trace = FALSE, silent = FALSE), 
   debug = FALSE)
-
+  
 maxclik.fd.scoring(m, step = NULL, information = c("expected", "observed"),
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   barrier = list(type = c("1", "2"), mu = 0), 
@@ -31,6 +33,9 @@ maxclik.fd.scoring(m, step = NULL, information = c("expected", "observed"),
 
 \arguments{
 \item{m}{an object of class \code{\link[stsm.class]{stsm}}.}
+%
+\item{xreg}{optional matrix of external regressors with the same number of rows 
+as the length of the input time series \code{m@y}.}
 %
 \item{barrier}{a list defining a barrier term to penalize parameter values close to the bounds 
 \code{m@lower} and \code{m@upper}.}
@@ -161,7 +166,7 @@ objective function and the gradient made by the line search procedure in all the
 Note: if \code{m@transPars} is not \code{NULL}, the elements \code{init}
 and \code{pars} are in terms of the auxiliar set of parameters. 
 If the output is stored for example in an object called \code{res},
-\code{get.pars(res$model)} will return the actual variance parameters.
+\code{stsm.class::get.pars(res$model)} will return the actual variance parameters.
 
 The version based on \code{optim}, \code{maxlik.fd.optim}, returns also the element
 \code{hessian} (if requested) containing the numerically differentiated Hessian matrix 
@@ -200,7 +205,7 @@ data("llmseas")
 
 # initial parameters and 'stsm' model
 initpars <- c(var1 = 1, var2 = 1, var3 = 1)
-m <- stsm.model(model = "llm+seas", y = llmseas[,1], pars = initpars)
+m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, pars = initpars)
 
 # Newton-Raphson algorithm (analytical Hessian)
 res1 <- maxlik.fd.scoring(m = m, step = NULL, 
@@ -221,7 +226,7 @@ res3
 # the model must be first defined accordingly, here 'var1', i.e.,
 # the variance of the disturbance in the observation equation
 # is concentrated, its standard error is reported as 'NA'
-mc <- stsm.model(model = "llm+seas", y = llmseas[,1], 
+mc <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, 
   pars = initpars[-1], cpar = initpars[1])
 res4 <- maxclik.fd.scoring(m = mc, step = NULL, 
     information = "observed", control = list(maxit = 100, tol = 0.001))

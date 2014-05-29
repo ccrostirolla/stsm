@@ -1,5 +1,5 @@
 
-maxlik.td.optim <- function(m,
+maxlik.td.optim <- function(m, xreg = NULL,
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999, 
@@ -7,6 +7,7 @@ maxlik.td.optim <- function(m,
   gr = c("numerical", "analytical"), optim.control = list(), hessian = FALSE)
 {
   mcall <- match.call()
+  method <- match.arg(method)
 
   bargs <- list(type = "1", mu = 0)
   if (barrier$mu > 0) #&& !is.null(barrier$mu)
@@ -50,12 +51,62 @@ maxlik.td.optim <- function(m,
     } else gr <- NULL
   }
 
-  method <- match.arg(method)
+  ##NOTE
+  # the following block is based on maxlik.fd.optim()
+
+  if (!is.null(xreg))
+  {
+    stopifnot(NROW(xreg) == length(m@y))
+
+    if (is.null(xregnms <- colnames(xreg)))
+    {
+      stop("column names must be given to regressor variables ",
+        "defined in argument ", sQuote("xreg")) 
+    }
+
+    allpars <- c(m@pars, m@nopars)
+    id.isna <- is.na(match(xregnms, names(allpars)))
+    if (all(id.isna))
+    {
+      ncxreg <- ncol(xreg)
+      xregpars <- rep(1, ncxreg)
+      names(xregpars) <- xregnms
+      m@pars <- c(m@pars, xregpars)
+      tmp <- rep(Inf, ncxreg)
+      names(tmp) <- xregnms
+      m@upper <- c(m@upper, tmp)
+      m@lower <- c(m@lower, -tmp)      
+    } else 
+    if (all(!id.isna))
+    { 
+      if (method == "L-BFGS-B")
+      {
+        parsnms <- names(m@pars)
+        tmpnms <- intersect(xregnms, parsnms)
+        if (length(tmpnms) > 0)
+        {
+          if (!all(tmpnms %in% names(m@lower)) || !all(tmpnms %in% names(m@upper)))
+            stop("method ", sQuote("L-BFGS-B"), " requires lower and upper bounds.\n",
+            "Lower and upper bounds for the coefficients of the regressor variables ",
+            "must be defined in the slots ", sQuote("lower"), " and ", sQuote("upper"), 
+            " of the ", sQuote("stsm"), " object passed as input in argument ", 
+            sQuote("m"), ".")
+        }
+      }
+    } else 
+    if (any(id.isna))
+    {
+      stop("some, but not all, names of the parameters in object ", sQuote("m"), 
+        " match the column names of ", sQuote("xreg"), 
+        ". Either all or neither of the coefficients should be defined in the ", 
+        sQuote("stsm"), "input model ", sQuote("m"), ".")
+    }
+  }
 
   if (method == "L-BFGS-B")
   {
     res <- optim(par = m@pars, fn = mloglik.td, gr = gr, 
-      model = m, KF.version = KF.version, KF.args = KF.args, 
+      model = m, xreg = xreg, KF.version = KF.version, KF.args = KF.args, 
       barrier = bargs, inf = inf, #load.package = FALSE, 
       method = method, lower = m@lower, upper = m@upper, 
       control = optim.control, hessian = hessian)
@@ -63,7 +114,7 @@ maxlik.td.optim <- function(m,
   } else 
   if (method == "BFGS") {
     res <- optim(par = m@pars, fn = mloglik.td, gr = gr, 
-      model = m, KF.version = KF.version, KF.args = KF.args, 
+      model = m, xreg = xreg, KF.version = KF.version, KF.args = KF.args, 
       barrier = bargs, inf = inf, #load.package = FALSE, 
       method = method, 
       control = optim.control, hessian = hessian)
@@ -71,7 +122,7 @@ maxlik.td.optim <- function(m,
   if (method == "AB-NM")
   {
     res <- constrOptim(theta = m@pars, f = mloglik.td, grad = NULL,
-      model = m, KF.version = KF.version, KF.args = KF.args,
+      model = m, xreg = xreg, KF.version = KF.version, KF.args = KF.args,
       ui = diag(length(m@pars)), ci = m@lower, mu = 1e-04, 
       method = "Nelder-Mead")
   }
@@ -81,6 +132,8 @@ maxlik.td.optim <- function(m,
 
   if (!is.null(m@cpar))
   {
+##FIXME see if xreg!=NULL
+
     # the barrier is not added to the final likelihood value
     tmp <- KFconvar(m, P0cov = KF.args$P0cov, debug = TRUE)
     m@cpar[] <- tmp$cpar
@@ -92,12 +145,30 @@ maxlik.td.optim <- function(m,
       td.args = c(KF.version = KF.version, KF.args), 
       barrier = list(mu = 0), inf = 99999)
   }
+  
+  # "xregcoefs" are not considered part of a "stsm" object;
+  # same as in maxlik.fd.optim()
 
-  res2 <- c(list(call = mcall,
-    init = pars0, pars = m@pars, model = m, loglik = res$value,
+  if (!is.null(xreg))
+  {
+    id <- na.omit(match(xregnms, names(m@pars)))
+    if (length(id) > 0) 
+    {
+      xregcoefs <- m@pars[id]
+      m@pars <- m@pars[-id]
+      if (length(id <- match(xregnms, names(m@lower))) > 0)
+        m@lower <- m@lower[-id]
+      if (length(id <- match(xregnms, names(m@upper))) > 0)
+        m@upper <- m@upper[-id]
+    }
+    xreg <- list(coefs = xregcoefs, stde = NULL)
+  }
+
+  res2 <- c(list(call = mcall, model = m,
+    init = pars0, pars = m@pars, xreg = xreg, loglik = res$value,
     convergence = res$convergence, iter = res$counts, message = res$message,
     Mpars = NULL, steps = NULL), list(ls.iter = NULL, ls.counts = NULL),
-    hessian = res$hessian)
+    list(hessian = res$hessian))
   class(res2) <- "stsmFit"
   res2
 }

@@ -12,7 +12,7 @@ of a linear Gaussian state space model by means of the Kalman filter.
 }
 
 \usage{
-mloglik.td(x, model,
+mloglik.td(x, model, xreg = NULL,
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
@@ -22,7 +22,7 @@ KFconvar(model, P0cov = FALSE, barrier = list(type = "1", mu = 0), debug = TRUE)
 mloglik.td.deriv(model, gradient = TRUE, infomat = TRUE,
   KF.args = list(), version = c("1", "2"), kfres = NULL)
 
-mloglik.td.grad(x, model, KF.version, KF.args = list(), check.KF.args, barrier, inf)
+mloglik.td.grad(x, model, KF.version, KF.args = list(), check.KF.args, barrier, inf, xreg)
 }
 
 \arguments{
@@ -31,6 +31,9 @@ This is an auxiliar argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
 \item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
+%
+\item{xreg}{optional matrix of external regressors with the same number of rows 
+as the length of the input time series \code{m@y}.}
 %
 \item{KF.version}{character indicating the implementation of the Kalman filter to be used.}
 %
@@ -185,7 +188,7 @@ Cambridge University Press.
 \examples{
 # local level plus seasonal model for a sample simulated series
 data("llmseas")
-m <- stsm.model(model = "llm+seas", y = llmseas[,1],
+m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas,
   pars = c("var1" = 300, "var2" = 10, "var3" = 100))
 # evaluate the time domain likelihood function using 
 # excluding the contributions of the first 8 observations

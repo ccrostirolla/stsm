@@ -14,7 +14,7 @@ a linear Gaussian state space model and its first and second order derivatives.
 }
 
 \usage{
-mloglik.fd(x, model, 
+mloglik.fd(x, model, xreg = NULL,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
 
 mcloglik.fd(x, model, 
@@ -30,7 +30,7 @@ mcloglik.fd.deriv(model,
 
 mloglik.fd.grad(x, model,
   barrier = list(type = c("1", "2"), mu = 0),
-  inf)
+  inf, xreg)
 
 mcloglik.fd.grad(x, model, inf, barrier)
 }
@@ -41,6 +41,9 @@ This is an auxiliar argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
 \item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
+%
+\item{xreg}{optional matrix of external regressors with the same number of rows 
+as the length of the input time series \code{m@y}.}
 %
 \item{barrier}{a list defining a barrier term to penalize parameter values close to the bounds 
 \code{m@lower} and \code{m@upper}.}
@@ -173,7 +176,7 @@ Cambridge University Press.
 \examples{
 # define the local level model for Nile time series
 pars <- c("var1" = 11000, "var2" = 1700)
-m <- stsm.model(model = "local-level", y = Nile, pars = pars)
+m <- stsm.class::stsm.model(model = "local-level", y = Nile, pars = pars)
 # 'mloglik.fd' returns the negative of the log-likelihood function
 mloglik.fd(model = m)
 # 'logLik' returns the value of the log-likelihood function
@@ -191,7 +194,7 @@ all.equal(da$hessian, dhn)
 # the same as above for the local level plus seasonal model and 
 # a sample simulated series
 data("llmseas")
-m <- stsm.model(model = "llm+seas", y = llmseas[,1])
+m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas)
 system.time(a <- mloglik.fd.deriv(model = m, gradient = TRUE, hessian = TRUE))
 system.time(g <- numDeriv::grad(func = mloglik.fd, x = m@pars, model = m))
 system.time(h <- numDeriv::hessian(func = mloglik.fd, x = m@pars, model = m))

@@ -1,5 +1,8 @@
 
-KFconvar <- function(model, P0cov = FALSE, barrier = list(type = "1", mu = 0), debug = TRUE)
+##FIXME TODO analytical derivatives when xreg!=NULL
+
+KFconvar <- function(model,
+  P0cov = FALSE, barrier = list(type = "1", mu = 0), debug = TRUE)
 {
   #NOTE using 'rescale=FALSE' uses relative variances and 'cpar=1'
   #NOTE see use factor (n/(n-1)) * s2
@@ -41,7 +44,7 @@ KFconvar <- function(model, P0cov = FALSE, barrier = list(type = "1", mu = 0), d
   list(mll = mll, cpar = s2)
 }
 
-mloglik.td <- function(x, model,
+mloglik.td <- function(x, model, xreg = NULL,
   #KF.version = c("KFKSDS", "stats", "StructTS", "KFAS", "FKF", "sspir", "dlm", "dse"),
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
@@ -49,6 +52,30 @@ mloglik.td <- function(x, model,
 {
   if (!missing(x)) if(!is.null(x))
     model@pars <- x
+
+  if (!is.null(xreg))
+  {
+##FIXME see svd()
+    #stopifnot(NROW(xreg) == length(model@y))
+
+    #xregcoefs <- model@pars[grepl("^xreg", names(model@pars))]
+    allpars <- c(model@pars, model@nopars)
+    id <- match(colnames(xreg), names(allpars))
+    #if (all(is.na(id))) { }
+    if (any(is.na(id)))
+      stop("column names of ", sQuote("xreg"), " do not match the names of the parameters")
+    xregcoefs <- allpars[id]
+
+##NOTE the time domain works on the original data (not differenced)
+    # if (model@model == "llm+seas") {
+    #   dxreg <- diff(xreg, frequency(model@y))
+    # } else
+    #   stop("TODO")
+    #
+    #model@diffy <- model@diffy - dxreg %*% cbind(xregcoefs)
+    #model@ssd <- as.vector(Mod(fft(model@diffy))^2 / (pi2 * n))
+    model@y <- model@y - xreg %*% cbind(xregcoefs)
+  }
 
   P0cov <- if (is.null(KF.args$P0cov)) FALSE else KF.args$P0cov
 
@@ -164,7 +191,7 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
 }
 
 mloglik.td.grad <- function(x, model, KF.version, KF.args = list(), 
-  check.KF.args, barrier, inf)
+  check.KF.args, barrier, inf, xreg)
 {
   if (!missing(x)) if(!is.null(x))
     model@pars[] <- x

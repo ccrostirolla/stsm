@@ -120,7 +120,7 @@ containing the filtered components and residuals.}
 # fit the local level plus seasonal model to a 
 # sample simulated series
 data("llmseas")
-m <- stsm.model(model = "llm+seas", y = llmseas[,1])
+m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas)
 res <- maxlik.fd.scoring(m = m, step = NULL, 
   information = "expected", control = list(maxit = 100, tol = 0.001))
 print(res)

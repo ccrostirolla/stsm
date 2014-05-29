@@ -12,14 +12,14 @@ algorithm available in \code{\link[stats]{optim}}.
 }
 
 \usage{
-maxlik.td.optim(m,
+maxlik.td.optim(m, xreg = NULL,
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999, 
   method = c("BFGS", "L-BFGS-B", "Nelder-Mead", "CG", "SANN", "AB-NM"),
   gr = c("numerical", "analytical"), optim.control = list(), hessian = FALSE)
 
-maxlik.td.scoring(m, step = NULL, 
+maxlik.td.scoring(m, xreg = NULL, step = NULL, 
   KF.args = list(), check.KF.args = TRUE,
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   control = list(maxit = 100, tol = 0.001, trace = FALSE, silent = FALSE), 
@@ -28,6 +28,9 @@ maxlik.td.scoring(m, step = NULL,
 
 \arguments{
 \item{m}{an object of class \code{\link[stsm.class]{stsm}}.}
+%
+\item{xreg}{optional matrix of external regressors with the same number of rows 
+as the length of the input time series \code{m@y}.}
 %
 \item{KF.version}{character indicating the implementation of the Kalman filter to be used.}
 %
@@ -132,34 +135,35 @@ Nocedal, J. and Wright, J. W. (2006).
 \examples{
 # replicate maximum likelihood procedure as implemented in 'stats::StructTS'
 res0 <- stats::StructTS(log(AirPassengers), type = "BSM")
-mairp <- stsm.model(model = "BSM", y = log(AirPassengers), 
+mairp <- stsm.class::stsm.model(model = "BSM", y = log(AirPassengers), 
   transPars = "StructTS")
 res1 <- maxlik.td.optim(mairp, KF.version = "KFKSDS", 
   KF.args = list(P0cov = TRUE), method = "L-BFGS-B", gr = "numerical")
-mairp1 <- set.pars(mairp, pmax(res1$par, .Machine$double.eps))
-round(get.pars(mairp1), 6)
-all.equal(get.pars(mairp1), res0$coef[c(4,1:3)], tol = 1e-05, check.att = FALSE)
+mairp1 <- stsm.class::set.pars(mairp, pmax(res1$par, .Machine$double.eps))
+round(stsm.class::get.pars(mairp1), 6)
+all.equal(stsm.class::get.pars(mairp1), res0$coef[c(4,1:3)], 
+  tol = 1e-04, check.attributes = FALSE)
 
 # smoothed components
-ss1 <- char2numeric(mairp1, P0cov = TRUE)
-kf1 <- KF(mairp1@y, ss1)
-ks1 <- KS(mairp1@y, ss1, kf1)
+ss1 <- stsm.class::char2numeric(mairp1, P0cov = TRUE)
+kf1 <- KFKSDS::KF(mairp1@y, ss1)
+ks1 <- KFKSDS::KS(mairp1@y, ss1, kf1)
 plot(tsSmooth(res0)[,c(1,3)])
 plot(ks1$ahat[,c(1,3)])
 
 # the scoring algorithm reaches another local optimum where
 # the seasonal component is more homoscedastic
-mairp <- stsm.model(model = "BSM", y = log(AirPassengers), 
+mairp <- stsm.class::stsm.model(model = "BSM", y = log(AirPassengers), 
   transPars = NULL)
 res2 <- maxlik.td.scoring(mairp, step = NULL, 
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   control = list(maxit = 100, tol = 0.001, trace = FALSE), debug = FALSE)
 round(res2$par, 6)
 
-mairp2 <- set.pars(mairp, res2$par)
-ss2 <- char2numeric(mairp2, P0cov = FALSE)
-kf2 <- KF(mairp2@y, ss2)
-ks2 <- KS(mairp2@y, ss2, kf2)
+mairp2 <- stsm.class::set.pars(mairp, res2$par)
+ss2 <- stsm.class::char2numeric(mairp2, P0cov = FALSE)
+kf2 <- KFKSDS::KF(mairp2@y, ss2)
+ks2 <- KFKSDS::KS(mairp2@y, ss2, kf2)
 plot(ks2$ahat[,c(1,3)])
 }
 

@@ -11,10 +11,11 @@ in a \code{\link[stsm.class]{stsm}} object.
 }
 
 \usage{
-\method{logLik}{stsm}(object, domain = c("frequency", "time"), 
+\method{logLik}{stsm}(object, domain = c("frequency", "time"), xreg = NULL,
   td.args = list(P0cov = FALSE, t0 = 1, 
     KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version)), 
-  check.td.args = TRUE, barrier = list(type = c("1", "2"), mu = 0), 
+  check.td.args = TRUE, 
+  barrier = list(type = c("1", "2"), mu = 0), 
   inf = 99999, ...)
 }
 
@@ -22,6 +23,8 @@ in a \code{\link[stsm.class]{stsm}} object.
 \item{object}{an object of class \code{\link[stsm.class]{stsm}}.}
 \item{domain}{a character indicating whether the time domain or the spectral 
 likelihood should be evaluated.}
+\item{xreg}{optional matrix of external regressors with the same number of rows 
+as the length of the input time series \code{m@y}.}
 \item{td.args}{a list containing arguments to be passed to \code{\link{mloglik.td}}.
 Only for \code{domain = "time"}.}
 \item{check.td.args}{logical. If \code{TRUE}, argument \code{td.args} is checked 

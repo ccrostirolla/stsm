@@ -165,7 +165,7 @@ Tinbergen Institute Discussion Papers, No. 2006-105/4.
 data("llmseas")
 # fit the local level plus seasonal model with default arguments
 # using the Newton-Raphson algorithm
-m <- stsm.model(model = "llm+seas", y = llmseas[,1])
+m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas)
 res <- maxlik.fd.scoring(m = m, information = "observed")
 coef(res)
 # confidence intervals for parameter estimates ...

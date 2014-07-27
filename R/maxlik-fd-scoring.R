@@ -1,5 +1,8 @@
 
-maxlik.fd.scoring <- function(m, xreg = NULL, step = NULL, 
+##NOTE
+#conv.e1 is not considered here, it is tracked in maxlik.td.scoring()
+
+maxlik.fd.scoring <- function(m, step = NULL, 
   information = c("expected", "observed", "mix"),
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   barrier = list(type = c("1", "2"), mu = 0), 
@@ -11,22 +14,19 @@ maxlik.fd.scoring <- function(m, xreg = NULL, step = NULL,
 
   mcall <- match.call()
 
-  mfcn.step <- function(x, m, pd, barrier)
+  mll.step <- function(x, m, pd, barrier)
   {
-    m <- set.pars(m, get.pars(m) + x * pd)
-
-    mloglik.fd(x = NULL, model = m, barrier = barrier) 
+    mloglik.fd(x = m@pars + x * pd, model = m, 
+      barrier = barrier) # by default: inf = 99999
   }
 
-  mgr.step <- function(x, m, pd, barrier)
+  dmll.step <- function(x, m, pd, xreg, barrier)
   {
     m@pars <- m@pars + x * pd
-
-    gr <- mloglik.fd.deriv(m, gradient = TRUE,
+    gr <- mloglik.fd.deriv(model = m, xreg = xreg, gradient = TRUE,
       hessian = FALSE, infomat = FALSE, modcovgrad = FALSE,
       barrier = barrier, version = "2")$gradient
-    gr <- drop(gr %*% pd)
-    gr
+    drop(gr %*% pd)
   }
 
   cargs <- list(maxit = 100, tol = 0.001, trace = FALSE, silent = TRUE)
@@ -41,10 +41,9 @@ maxlik.fd.scoring <- function(m, xreg = NULL, step = NULL,
   use.hess <- info == "observed"
   use.mix <- info == "mix"
 
-  lsres <- list(ls.iter = NULL, ls.counts = c("fcn" = 0, "grd" = 0))
+  lsres <- list(ls.iter = NULL, ls.counts = c("fnc" = 0, "grd" = 0))
   lsintv <- c(0, ls$cap)
 
-  pars0 <- m@pars
   convergence <- FALSE
   iter <- 0
 
@@ -56,50 +55,41 @@ maxlik.fd.scoring <- function(m, xreg = NULL, step = NULL,
   } else
     pg <- m@ssd
 
-  # regressor variables (define constant variables)
+# spectral generating function (constants)
+##FIXME add if is.null(m@sgfc) then define sgfc (see repository previous version)
+#this would save some computations if m@sgfc is not defined in the input model
 
-  if (!is.null(xreg))
+  # regressor variables
+
+  if (!is.null(m@xreg))
   {
-    # check for safety if a single regressor is passed as a vector
-    if (is.null(dim(xreg)))
-      xreg <- data.matrix(xreg)
-    stopifnot(nrow(xreg) == length(m@y))
+    ##NOTE
+    # this overwrites the values m@pars["xreg"], so they 
+    # are not used as initial values
+    dxreg <- m@fdiff(m@xreg, frequency(m@y))
+    fitxreg <- lm(m@diffy ~ dxreg - 1, na.action = na.omit)
+    m@pars[m@ss$xreg] <- coef(fitxreg)
 
-    pi2n <- 2 * pi * length(m@diffy)
-    dxreg <- m@fdiff(xreg, frequency(m@y))
-    diffy0 <- m@diffy
-    y0 <- m@y
-    ssd0 <- m@ssd
-
-    xregcoefs <- coef(lm.fit(x = dxreg, y = m@diffy))
-
-    m@y <- y0 - xreg %*% xregcoefs
-    m@diffy <- m@fdiff(m@y, frequency(m@y))
- 
-    m@ssd <- as.vector(Mod(fft(m@diffy))^2 / pi2n)
-
+    # constant terms to be passed to mloglik.fd.deriv() in the loop below
+    xreg <- list(dxreg = dxreg, fft.dxreg = fft.dxreg <- apply(dxreg, 2, fft))
   } else
-    xregcoefs <- NULL
+    xreg <- NULL
+
+  pars0 <- m@pars
 
   # storage matrices for tracing information
 
-  Mpars <- if (control$trace) rbind(c(m@cpar, m@pars, xregcoefs), 
-    matrix(nrow = control$maxit + 1, 
-      ncol = length(m@pars) + length(m@cpar) + max(0, ncol(xreg)))) else NULL
+  if (control$trace) {
+    Mpars <-  rbind(pars0, 
+      matrix(nrow = control$maxit + 1, ncol = length(pars0))) 
+  } else Mpars <- NULL
   steps <- if (control$trace) rep(NA, control$maxit + 2) else NULL
-
-if (debug)
-{
-  val <- logLik(object = m, domain = "frequency", barrier = barrier)
-  cat(paste("\niter =", iter, "logLik =", round(val, 4), "\n"))
-  print(get.pars(m))
-}
 
   # begin iterative process
 
   while (!(convergence || iter > control$maxit))
   {
-    tmp <- mloglik.fd.deriv(m, gradient = TRUE, 
+    tmp <- mloglik.fd.deriv(m, xreg = xreg, gradient = TRUE, 
       hessian = use.hess, infomat = use.gcov, modcovgrad = use.mix,
       barrier = barrier, version = "2")
 
@@ -130,17 +120,17 @@ if (debug)
 
       lsout <- switch(ls$type,
 
-      "optimize" = optimize(f = mfcn.step, interval = lsintv, 
+      "optimize" = optimize(f = mll.step, interval = lsintv, 
         maximum = FALSE, tol = ls$tol, m = m, pd = pd, 
         barrier = barrier),
 
       "brent.fmin" = Brent.fmin(a = 0, b = lsintv[2], 
-        fcn = mfcn.step, tol = ls$tol, m = m, pd = pd, 
+        fcn = mll.step, tol = ls$tol, m = m, pd = pd, 
         barrier = barrier),
 
       "wolfe" = linesearch(b = lsintv[2], 
-        fcn = mfcn.step, grd = mgr.step, 
-        ftol = ls$ftol, gtol = ls$gtol, m = m, pd = pd, 
+        fcn = mll.step, grd = dmll.step, 
+        ftol = ls$ftol, gtol = ls$gtol, m = m, pd = pd, xreg = xreg,
         barrier = barrier))
 
       lambda <- lsout$minimum
@@ -163,44 +153,13 @@ if (debug)
       convergence <- TRUE
     }
 
-    # coefficients of regressor variables
-
-    if (!is.null(xreg))
-    {
-      ss <- char2numeric(m)
-      kf <- KF(m@y, ss)
-      resid <- kf$v
-
-      sigma2 <- spectrum(resid, spans = c(3, 5), plot = FALSE)$spec #/ (pi2n)
-      sigma2 <- mean(sigma2)
-
-      nrm <- length(resid) - NROW(dxreg)
-      if (nrm > 0)
-        resid <- resid[-seq_len(nrm)]
-      #xregcoefs <- coef(lm.fit(x = dxreg, y = resid))
-      tmp <- coef(summary(lm(resid ~ 0 + dxreg)))
-      xregcoefs <- tmp[,1]
-      xregstde <- tmp[,2]
-      if (is.null(colnames(xregstde))) # when ncol(dxreg) is 1
-        names(xregstde) <- names(xregcoefs) <- colnames(dxreg)
-
-      if (!convergence)
-      {
-        #m@diffy <- diffy0 - dxreg %*% xregcoefs
-        m@y <- y0 - xreg %*% xregcoefs
-        m@diffy <- m@fdiff(m@y, frequency(m@y))
-
-        m@ssd <- as.vector(Mod(fft(m@diffy))^2 / pi2n)
-      } 
-    }
-
     # trace
 
     iter <- iter + 1
 
     if (control$trace)
     {
-      Mpars[iter+1,] <- c(get.cpar(m), get.pars(m), xregcoefs)
+      Mpars[iter+1,] <- pars.new
       steps[iter] <- lambda
     }
 
@@ -231,21 +190,24 @@ if (debug && !is.null(m@lower) && !is.null(m@upper))
 
   # output
 
-  # the barrier term is not added to the final likelihood value
-  val <- logLik(object = m, domain = "frequency", barrier = list(mu = 0))
+  val <- -mloglik.fd(#x = NULL, 
+    model = m, barrier = barrier, inf = 99999)
 
-  if (!is.null(xreg))
-  {
-     xreg <- list(coef = xregcoefs, stde = xregstde)
+  if (convergence) {
+    convergence <- "yes"
+  } else
+    convergence <- "maximum number of iterations was reached"
 
-    m@y <- y0    
-    m@ssd <- ssd0
-  }
+  vcov.type <- switch(info, "expected" = "information matrix", 
+    "observed" = "Hessian", "mix" = "modified outer product of the gradient")
+
+##FIXME see rename "Dmat"
 
   res <- c(list(call = mcall, model = m, 
     init = pars0, pars = m@pars, xreg = xreg, loglik = val, 
     convergence = convergence, iter = iter, message = "",
-    Mpars = Mpars, steps = steps), lsres)
+    Mpars = Mpars, steps = steps), lsres, 
+    list(Dmat = M, std.errors = sqrt(diag(solve(M))), vcov.type = vcov.type))
   class(res) <- "stsmFit"
   res
 }

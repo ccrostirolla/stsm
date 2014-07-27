@@ -13,11 +13,14 @@
 # procedure 4: ML-FD L-BFGS-B algorithm from 'optim()'
 #
 
+library("stsm.class")
 library("stsm")
 
 # load data
 
-data("llm")
+##NOTE
+# requires data set generated in file "datagen-llm.R" in the 
+# same folder as this file
 
 iter <- ncol(llm)
 
@@ -61,15 +64,6 @@ Mres <- lapply(Mres, function(x) list(M = tmp1, iter = tmp2,
   time = tmp2, paths = tmp3, lscounts = tmp4))
 
 rm(tmp1, tmp2, tmp3, tmp4)
-
-# graphical parameters to trace the simulation
-
-plotid <- c(1, 2, 4) + 1
-#plab <- names(Mres)[plotid]
-plab <- c("StructTS", "Newton-Raphson", "Scoring", "BFGS", "L-BFGS-B")[plotid]
-colors <- c("red", "green", "blue")
-arrow.angle <- c(20, 30, 40)
-legtext <- NULL
 
 # begin main loop
 
@@ -148,8 +142,8 @@ for (i in seq_len(iter))
   # procedure 3: ML-FD BFGS algorithm from 'optim()'
   # NOTE 'count' is recorded (not 'iter')
 
-  try(res3 <- maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
-    gr = "analytical", hessian = FALSE), silent = TRUE)
+  res3 <- try(maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
+    gr = "analytical"), silent = TRUE)
   #try(res3 <- maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
   #  gr = "numerical", hessian = FALSE), silent = TRUE)
 
@@ -180,8 +174,8 @@ for (i in seq_len(iter))
 
   #try(res4 <- maxlik.fd.optim(m, barrier = bar, inf = 99999, 
   #  method = "L-BFGS-B", gr = "analytical", hessian = FALSE), silent = TRUE)
-  try(res4 <- maxlik.fd.optim(m, barrier = bar, inf = 99999, 
-    method = "L-BFGS-B", gr = "numerical", hessian = FALSE), silent = TRUE)
+  res4 <- try(maxlik.fd.optim(m, barrier = bar, inf = 99999, 
+    method = "L-BFGS-B", gr = "numerical"), silent = TRUE)
 
   # record the path followed by the optimization method
   # using the same stopping criterion as in 'maxlik.fd.scoring()'
@@ -227,42 +221,6 @@ for (i in seq_len(iter))
 #1722.93189   47.27785 
 
   # trace simulation
-
-  # '[,-1,i]' the first column is removed, 
-  # it is the value inferred from the maximized likelihood
-  # the parameter concentrated out of the likelihood function
-  tmp <- rbind(na.omit(Mres$proc1$paths[,-1,i]), na.omit(Mres$proc2$paths[,-1,i]),
-    na.omit(Mres$proc3$paths[,-1,i]), na.omit(Mres$proc4$paths[,-1,i]))
-  rg1 <- range(tmp)
-  tmp <- rbind(na.omit(Mres$proc1$iter[i]), na.omit(Mres$proc2$iter[i]),
-    na.omit(Mres$proc3$iter[i]), na.omit(Mres$proc4$iter[i]))
-  rg2 <- c(0, max(tmp[plotid-1,]) + 1)
-
-  options(warn = -1)
-  plot(rg2, rg1, type = "n", xlab = "no iter.", ylab = "var1", 
-    main = paste("series", i))
-
-  for (k in seq_along(plotid))
-  {
-    idk <- plotid[k]
-    mp <- na.omit(Mres[[idk]]$paths[,,i])
-    if (length(mp) > 0) 
-    {
-      for (j in seq(2, nrow(mp)))
-      {
-        arrows(j-2, mp[j-1,2], j-1, mp[j,2], 
-          lty = 1, col = colors[k], length = 0.15, angle = arrow.angle[k])
-      }
-    }
-
-    legtext <- c(legtext, 
-      paste(plab[k], ": ", Mres[[idk]]$iter[i], " iter.", sep = ""))
-  }
-
-  legend("topright", legtext, cex = 1, adj = 0,
-    col = colors, lty = 1, xjust = 0, yjust = 2.0, bty = "n", horiz = FALSE)
-  legtext <- NULL
-  options(warn = 0)
 
   #print(i)
   trace.iter <- 100 * (i / iter)

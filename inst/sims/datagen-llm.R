@@ -21,9 +21,4 @@ for (i in seq(iter))
   My[,i] <- cumsum(rnorm(dgp.n, sd = sqrt(dgp.var2))) + 
     rnorm(dgp.n, sd = sqrt(dgp.var1))
 
-My <- ts(My, frequency = 1)
-
-# the resultant matrix 'My' contains the same data as 'llms'
-
-data("llm")
-identical(My, llm)
+llm <- ts(My, frequency = 1)

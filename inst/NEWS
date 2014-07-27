@@ -1,0 +1,133 @@
+
+Version: 1.4 2014-07-22
+------------------------
+
+  o Added a document describing the package in vignettes directory.
+    A duplicate of the document was required in directory "stsm/inst/doc"
+    in order to pass the R CMD check. Other solutions can be possible  
+    to add the pdf: for example the package "tsoutlies" provides an 
+    "index.html" file "doc" directory so that the suplementary pdf 
+    file is shown in the main help page of the package. But this way, 
+    the pdf is not detected as a vignette and is not shown on CRAN web site of the package.
+    
+  o "mloglik.td" and "mloglik.fd": 
+    These functions have been adapted for the case where the input model 
+    contains external regressors. The argument "xreg" is removed and information 
+    from the slot "xreg" in the input model is used since this information has been 
+    added to the "stsm" class defined in package "stsm.class".
+
+  o "mloglik.td.deriv": 
+    Added argument "convergence = c(0.001, length(model@y))".
+
+  o "mloglik.td.deriv" and "mloglik.td.grad": 
+    The gradient and the information matrix (in the former function) are now 
+    obtained with respect to the coefficients of external regressors that 
+    may be defined in the "stsm" object.
+
+  o "mloglik.fd.deriv" and "mloglik.fd.grad": 
+    The gradient, the Hessian and the information matrix are now 
+    obtained with respect to the coefficients of external regressors that 
+    may be defined in the "stsm" object.
+
+  o "maxlik.td.scoring" and "maxlik.fd.scoring":
+    As the analytical derivatives are now available also for the 
+    coefficients of external regressors, they are used used in 
+    the scoring algorithms. The current approach seems to work better 
+    than in the previous where the vector of parameters was split
+    in two vectors (one for the variance parameters and other for the 
+    externa regressors). Before, the coefficients of the external regressors 
+    were obtained (at each step of the procedure) in a linear regression 
+    (OLS or frequency domain linear regression). Now, the availability of 
+    analytical derivatives allows including these coefficients in the 
+    updating equation of the scoring algorithm.
+
+  o "maxlik.td.optim" and "maxlik.fd.optim": 
+    - Removed argument "hessian" and set fixed to TRUE. The Hessian is 
+    returned and is used to compute the standard errors of parameter 
+    estimates. This way is more convenient because when printing the output 
+    the standard errors will be already available in the "stsmFit" 
+    object and do not need to be computed whenever the object is printed.
+
+    - These functions have been adapted for the case where external  
+    regressors are defined in the input model.
+
+    - The coefficients of external regressors (if any) are not removed 
+    from the slot "pars" of the output object, they are no longer placed 
+    separately in a list "xreg" containing the regressors, estimates and 
+    standard errors.
+
+  o "maxlik.td.optim": 
+    Fixed the sign of the value of the log-likelihood that was reported.
+    The element "loglik" in the in output list stored the value of 
+    the minus log-likelihood function, changed to (not-minus) log-likelihood.
+
+  o Function "mll.step" defined within "maxlik.fd.scoring":
+    set.pars(m, get.pars(m) + x * pd) changed to 
+    set.pars(m, m@pars + x * pd), which is the correct   
+    way if m@transPars is not null.
+
+  o "maxlik.td.scoring": 
+    the information matrix at the local optimum is now returned.
+
+  o Methods "fitted" and "residuals": 
+    the arguments "std.residuals" and "standardised" have been added, 
+    respectively in each method. By default, "fitted" returns 
+    the standardised residuals (as in previous versions); "residuals" does 
+    not standardise the residuals by default because that way is more 
+    convenient when used in package "tsoutliers".
+
+   o Method "print.stsmFit" has been simplified by taking advantage of 
+     new output (optimHessian, analytical Hessian or information matrix) 
+     returned by the functions that fit the structural time series model.
+
+Version: 1.3 2014-05-29
+------------------------
+
+  o NAMESPACE: the functions "KalmanFilter", "KF", "KF.deriv.C", "KS" and 
+    "make.KF.args" are imported instead of importing the whole "KFKSDS" package.
+
+  o DESCRIPTION: packages "KFSKSD" and "stsm.class" are moved 
+    from the "Depends" field to the "Imports" field.
+
+  o The Expetation-Maximization algorithm can now be executed in parallel. 
+    The function "mclapply" from package "parallel" is used. The number of 
+    parallel processes can be specified in argument "num.cores". By default 
+    it is set equal to the number of CPU cores.
+
+  o Added argument "xreg" in functions "mloglik.fd" and "mloglik.td". 
+    External regressor variables can be passed to these functions.
+
+  o The concatenation of the elements in the list returned by 
+    "maxlik.fd.optim" and "maxlik.td.optim" has been corrected. 
+    Before, the Hessian matrix was not concatenated as a matrix element 
+    but each cell was split in different elements in the list.
+    "res2 <- c(list(), hessian = res$hessian)"
+    was changed to
+    "res2 <- c(list(), list(hessian = res$hessian))".
+
+  o In order to reduce the size of the package, the data sets of simulated 
+    series "llm" and "llmseas" have been removed. The first series of "llmseas" 
+    is kept in the "data" directory because it is used in the examples of 
+    the documentation.
+    The complete data sets can be generated by means of the scripts 
+    "datagen-llm.R" and "datagen-llmseas.R" of the "sims" directory.
+
+Version: 1.2 2014-01-20
+------------------------
+
+  o Fixed the warning reported by compiler 
+    "ISO C++ forbids variable length array ‘v’ [-Wvla]"
+    in file "KFKSDS-steady-v2.cpp".
+  
+  o Removed some unused variables from files "KFKSDS-steady-v2.cpp" and 
+    "KFKSDS-steady.cpp".
+
+Version: 1.1 2014-01-26
+------------------------
+
+  o First version on CRAN.
+
+Version: 1.0 2014-01-25
+------------------------
+
+  o First version submitted to CRAN.

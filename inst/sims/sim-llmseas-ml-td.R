@@ -16,11 +16,14 @@
 
 ##NOTE added in optim() convergence if (... || r > maxiter)
 
+library("stsm.class")
 library("stsm")
 
 # load data
 
-data("llmseas")
+##NOTE
+# requires data set generated in file "datagen-llmseas.R" in the 
+# same folder as this file
 
 iter <- ncol(llmseas)
 
@@ -137,7 +140,7 @@ for (i in seq_len(iter))
 
   # procedure 3: ML-TD L-BFGS-B algorithm from 'optim()'
 
-  try(res3 <- maxlik.td.optim(m, KF.version = "KFKSDS", 
+  res3 <- try(maxlik.td.optim(m, KF.version = "KFKSDS", 
     KF.args = list(P0cov = FALSE), check.KF.args = TRUE,
     barrier = bar, inf = 99999, method = "L-BFGS-B", gr = "numerical"), 
     silent = TRUE)
@@ -186,72 +189,6 @@ for (i in seq_len(iter))
 #> res4$opt$counts
 #function gradient 
 #      38       38 
-
-  # procedure 5: ML-TD L-BFGS-B 
-  # 'var1' is concentrated out of the likelihood function
-
-  mc <- stsm.model(model = "llm+seas", y = llmseas[,i], 
-    #pars = initpars[-1], cpar = initpars[1], nopars = nop, transPars = transP)
-    #pars = initpars[-2], cpar = initpars[2], nopars = nop, transPars = transP)
-    pars = initpars[-3], cpar = initpars[3], nopars = nop, transPars = transP)
-
-  try(res5 <- maxlik.td.optim(mc, KF.version = "KFKSDS", 
-    KF.args = list(P0cov = FALSE), check.KF.args = TRUE,
-    barrier = bar, inf = 99999, method = "L-BFGS-B", gr = "numerical"), 
-    silent = TRUE)
-  
-  if (!inherits(res5, "try-error"))
-    Mres$proc5$M[i,] <- coef(res5)
-
-  # the code below is very time consuming
-  # res5$iter[1] can be used instead although it does not
-  # use the same stopping rule set in the other procedures
-  #
-  # record the path followed by the optimization method
-  # using the same stopping criterion as in 'maxlik.fd.scoring()'
-  if (!inherits(res5, "try-error"))
-  {
-    Mpars <- c(mc@pars, mc@cpar)
-    conv <- FALSE
-    r <- 0
-    while (!conv)
-    {
-      optout <- maxlik.td.optim(mc, KF.version = "KFKSDS", 
-        KF.args = list(P0cov = FALSE), check.KF.args = TRUE,
-        barrier = bar, inf = 99999, method = "L-BFGS-B", gr = "numerical", 
-        optim.control = list(trace = FALSE, maxit = r))
-      Mpars <- rbind(Mpars, 
-        c(get.cpar(optout$model, TRUE), get.pars(optout$model, TRUE)))
-      #conv <- optout$convergence == 0
-      if (sqrt(sum((Mpars[r+1,] - Mpars[r+2,])^2)) < tol || r > maxiter)
-        conv <- TRUE
-      r <- r + 1
-    }
-
-    Mres$proc5$M[i,] <- Mpars[r+1,]
-    Mres$proc5$iter[i] <- r
-    Mres$proc5$paths[seq(r+1),,i] <- Mpars
-  }
-
-#i=1
-#pars = initpars[-1], cpar = initpars[1]
-#> res5$par
-#      var2       var3 
-#0.04723665 0.93812776 
-#> Mpars[r+1,]
-#      var1       var2       var3 
-#183.433336   8.664776 172.083904 
-#> c(res5$model@cpar, res5$model@cpar * res5$par)
-#      var1       var2       var3 
-#183.433336   8.664776 172.083904 
-#> coef(res5)
-#      var1       var2       var3 
-#183.433336   8.664776 172.083904 
-#> r
-#[1] 11
-#> res5$iter
-#function gradient 
-#      18       18 
 
   # trace simulation
 
@@ -312,7 +249,6 @@ colMeans(Mres$proc1$M)
 colMeans(Mres$proc2$M)
 colMeans(Mres$proc3$M)
 colMeans(Mres$proc4$M)
-colMeans(Mres$proc5$M)
 
 > colMeans(Mres$proc0$M)
      var1      var2      var3 
@@ -333,23 +269,14 @@ colMeans(Mres$proc5$M)
       var1       var2       var3 
 354.532892   3.581356  93.012577 
 
-#pars = initpars[-3], cpar = initpars[3], nopars = nop, transPars = transP
-> colMeans(Mres$proc5$M)
-      var1       var2       var3 
-329.223418   9.273746  76.644501 
-
 mean(Mres$proc0$iter)
 mean(Mres$proc1$iter)
 mean(Mres$proc2$iter)
 mean(Mres$proc3$iter)
 mean(Mres$proc4$iter)
-mean(Mres$proc5$iter)
 
 > mean(Mres$proc1$iter)
 [1] 10.526
 > mean(Mres$proc3$iter)
 [1] 31.179
 #'counts' not 'iter' another convergence criteria
-> mean(Mres$proc4$iter)
-[1] 34.699
-

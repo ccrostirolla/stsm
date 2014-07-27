@@ -12,7 +12,7 @@ logLik.stsm <- function(object, domain = c("frequency", "time"), xreg = NULL,
   domain <- match.arg(domain)[1]
 
   mll <- switch(domain,
-    "frequency" = -mloglik.fd(NULL, object, xreg, barrier, inf),
+    "frequency" = -mloglik.fd(NULL, object, barrier, inf),
 
     "time" = {
       if (is.null(td.args$KF.version)) {
@@ -21,7 +21,7 @@ logLik.stsm <- function(object, domain = c("frequency", "time"), xreg = NULL,
         KF.version <- td.args$KF.version
         td.args$KF.version <- NULL
       }
-      -mloglik.td(NULL, object, xreg, KF.version, td.args, check.td.args, barrier, inf)
+      -mloglik.td(NULL, object, KF.version, td.args, check.td.args, barrier, inf)
     })
 
   #attr(mll, "nobs") <- length(object@y)

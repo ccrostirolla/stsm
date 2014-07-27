@@ -26,8 +26,8 @@ functions \code{\link{maxlik.fd}} and \code{\link{maxlik.fd}}.
 \method{coef}{stsmFit}(object, ...)
 \method{print}{stsmFit}(x, digits = max(3L, getOption("digits") - 3L), 
   vcov.type = c("hessian", "infomat", "OPG", "sandwich", "optimHessian"), ...)
-\method{fitted}{stsmFit}(object, version = c("KFKSDS", "stats"), ...)
-\method{residuals}{stsmFit}(object, version = c("KFKSDS", "stats"), ...)
+\method{fitted}{stsmFit}(object, std.rediduals = TRUE, version = c("KFKSDS", "stats"), ...)
+\method{residuals}{stsmFit}(object, standardised = FALSE, version = c("KFKSDS", "stats"), ...)
 \method{plot}{stsmComponents}(x, ...)
 \method{predict}{stsm}(object, n.ahead = 1L, se.fit = TRUE, 
   version = c("KFKSDS", "stats"), ...)
@@ -49,6 +49,8 @@ functions \code{\link{maxlik.fd}} and \code{\link{maxlik.fd}}.
   compute the standard errors of the parameter estimates.}
 \item{version}{a character indicating whether the Kalman filter and smoother functions 
 from package \pkg{KFKSDS} or from the \pkg{stats} package should be used.}
+\item{std.rediduals}{logical. If \code{TRUE} residuals are standardised.}
+\item{standardised}{logical. If \code{TRUE} standardised are returned.}
 \item{n.ahead}{a numeric, number of observations ahead to perform prediction.}
 \item{se.fit}{logical. If \code{TRUE} standard errors of the predictions are returned.}
 \item{gof.lag}{numeric, number of lag autocorrelation coefficients to which apply the Box test.}
@@ -91,6 +93,15 @@ method \code{plot.stsmComponents} and \code{plot.stsmSmooth} or to \code{plot}
 in \code{plot.stsmPredict} and \code{plot.stsmSmooth}.
 %For \code{coef.stsmFit} and \code{print.stsmFit} it can be used to pass 
 %argument \code{rescale} to \code{\link[stsm.class]{get.pars}}.
+
+By default in method \code{fitted}, \code{std.rediduals = TRUE} so that 
+it behaves as in previous versions of the package where this 
+argument was not available.
+In method \code{rediduals}, by default \code{standardised = FALSE} 
+because it is more convenient when used in package \pkg{tsoutliers}
+(this argument does not need to be explicitly defined and hence the 
+method residuals is used in the same way both on \code{\link[stats]{arima}} 
+models and for \code{stsm}).
 }
 
 \value{

@@ -12,7 +12,7 @@ of a linear Gaussian state space model by means of the Kalman filter.
 }
 
 \usage{
-mloglik.td(x, model, xreg = NULL,
+mloglik.td(x, model, 
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
@@ -20,9 +20,12 @@ mloglik.td(x, model, xreg = NULL,
 KFconvar(model, P0cov = FALSE, barrier = list(type = "1", mu = 0), debug = TRUE)
 
 mloglik.td.deriv(model, gradient = TRUE, infomat = TRUE,
-  KF.args = list(), version = c("1", "2"), kfres = NULL)
+  KF.args = list(), version = c("1", "2"), kfres = NULL, 
+  convergence = c(0.001, length(model@y)))
 
-mloglik.td.grad(x, model, KF.version, KF.args = list(), check.KF.args, barrier, inf, xreg)
+mloglik.td.grad(x, model, KF.version, KF.args = list(), 
+  convergence = c(0.001, length(model@y)), 
+  check.KF.args, barrier, inf)
 }
 
 \arguments{
@@ -31,9 +34,6 @@ This is an auxiliar argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
 \item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
-%
-\item{xreg}{optional matrix of external regressors with the same number of rows 
-as the length of the input time series \code{m@y}.}
 %
 \item{KF.version}{character indicating the implementation of the Kalman filter to be used.}
 %
@@ -66,6 +66,9 @@ comparison of timings. This argument may be removed in future versions.}
 %
 \item{kfres}{optional list containing the elements involved in the Kalman filter 
 as returned by \code{\link[KFKSDS]{KF.deriv}}.}
+%
+\item{convergence}{a numeric vector containing two parameters to control 
+the convergence of the Kalman filter. See \code{\link[KFKSDS]{KF}}.}
 }
 
 \details{

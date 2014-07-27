@@ -23,10 +23,10 @@ seed <- 123
 
 # generate data
 
-m <- stsm.model(model = "llm+seas", y = ts(seq_len(dgp.n), frequency = dgp.s), 
+m <- stsm.class::stsm.model(model = "llm+seas", y = ts(seq_len(dgp.n), frequency = dgp.s), 
   pars = c(var1 = dgp.var1, var2 = dgp.var2, var3 = dgp.var3))
 
-ss <- char2numeric(m, FALSE)
+ss <- stsm.class::char2numeric(m, FALSE)
 SigmaEV <- eigen(ss$Q)
 
 My <- matrix(nrow = dgp.n, ncol = iter)
@@ -41,9 +41,4 @@ for (i in seq_len(iter))
     old.version = TRUE)$data
 }
 
-My <- ts(My, frequency = dgp.s)
-
-# the resultant matrix 'My' contains the same data as 'llmseas'
-
-data("llmseas")
-identical(My, llmseas)
+llmseas <- ts(My, frequency = dgp.s)

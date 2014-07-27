@@ -13,11 +13,14 @@
 # procedure 4: ML-FD L-BFGS-B algorithm from 'optim()'
 #
 
+library("stsm.class")
 library("stsm")
 
 # load data
 
-data("llmseas")
+##NOTE
+# requires data set generated in file "datagen-llmseas.R" in the 
+# same folder as this file
 
 iter <- ncol(llmseas)
 
@@ -153,10 +156,10 @@ for (i in seq_len(iter))
   # procedure 3: ML-FD BFGS algorithm from 'optim()'
   # NOTE 'count' is recorded (not 'iter')
 
-  try(res3 <- maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
-    gr = "analytical", hessian = FALSE), silent = TRUE)
-  #try(res3 <- maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
-  #  gr = "numerical", hessian = FALSE), silent = TRUE)
+  res3 <- try(maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
+    gr = "analytical"), silent = TRUE)
+  #res3 <- try(maxlik.fd.optim(m, inf = 99999, method = "BFGS", 
+  #  gr = "numerical"), silent = TRUE)
 
   if (!inherits(res3, "try-error"))
   {
@@ -183,10 +186,10 @@ for (i in seq_len(iter))
 
   # procedure 4: ML-FD L-BFGS-B algorithm from 'optim()'
 
-  #try(res4 <- maxlik.fd.optim(m, barrier = bar, inf = 99999, 
-  #  method = "L-BFGS-B", gr = "analytical", hessian = FALSE), silent = TRUE)
-  try(res4 <- maxlik.fd.optim(m, barrier = bar, inf = 99999, 
-    method = "L-BFGS-B", gr = "numerical", hessian = FALSE), silent = TRUE)
+  #res4 <- try(maxlik.fd.optim(m, barrier = bar, inf = 99999, 
+  #  method = "L-BFGS-B", gr = "analytical"), silent = TRUE)
+  res4 <- try(maxlik.fd.optim(m, barrier = bar, inf = 99999, 
+    method = "L-BFGS-B", gr = "numerical"), silent = TRUE)
 
   # record the path followed by the optimization method
   # using the same stopping criterion as in 'maxlik.fd.scoring()'
@@ -199,7 +202,7 @@ for (i in seq_len(iter))
     {
       optout <- maxlik.fd.optim(m = m, barrier = bar, inf = 99999, 
         #method = "L-BFGS-B", gr = "analytical", hessian = FALSE,
-        method = "L-BFGS-B", gr = "numerical", hessian = FALSE,
+        method = "L-BFGS-B", gr = "numerical", 
         optim.control = list(trace = FALSE, maxit = r))
       #Mpars <- rbind(Mpars, optout$par)
       Mpars <- rbind(Mpars, 

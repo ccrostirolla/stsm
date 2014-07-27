@@ -14,25 +14,25 @@ a linear Gaussian state space model and its first and second order derivatives.
 }
 
 \usage{
-mloglik.fd(x, model, xreg = NULL,
+mloglik.fd(x, model, 
+  barrier = list(type = c("1", "2"), mu = 0), inf = 99999, xreg)
+
+mcloglik.fd(x, model, xreg = NULL,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
 
-mcloglik.fd(x, model, 
-  barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
-
-mloglik.fd.deriv(model, 
+mloglik.fd.deriv(model, xreg = NULL,
   gradient = TRUE, hessian = TRUE, infomat = TRUE, modcovgrad = TRUE,
   barrier = list(type = c("1", "2"), mu = 0),
   version = c("2", "1"))
 
-mcloglik.fd.deriv(model, 
+mcloglik.fd.deriv(model, xreg = NULL, 
   gradient = TRUE, hessian = TRUE, infomat = TRUE)
 
-mloglik.fd.grad(x, model,
+mloglik.fd.grad(x, model, xreg = NULL,
   barrier = list(type = c("1", "2"), mu = 0),
-  inf, xreg)
+  inf)
 
-mcloglik.fd.grad(x, model, inf, barrier)
+mcloglik.fd.grad(x, model, xreg = NULL, inf, barrier)
 }
 
 \arguments{
@@ -42,8 +42,7 @@ to \code{\link[stats]{optim}}.}
 %
 \item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
 %
-\item{xreg}{optional matrix of external regressors with the same number of rows 
-as the length of the input time series \code{m@y}.}
+\item{xreg}{optional list containing constant terms. See details.}
 %
 \item{barrier}{a list defining a barrier term to penalize parameter values close to the bounds 
 \code{m@lower} and \code{m@upper}.}
@@ -131,6 +130,32 @@ where this function is passed as the gradient to be used by \code{\link[stats]{o
 including the arguments \code{inf} and \code{barrier}.
 %\code{inf} and \code{barrier} are in turn passed as argument 
 %to the objective function \code{\link{mloglik.fd}}.
+
+Argument \code{xreg}.
+It is an optional list of constant terms. It is used by 
+\code{\link{maxlik.fd.optim}} when analytical derivatives are employed and 
+by \code{\link{maxlik.fd.scoring}}. It avoids computing some constant terms each 
+time the function \code{mloglik.fd.grad} is called. 
+
+The list \code{xreg} should contain 
+an element called \code{dxreg}, the external regressors differeneced by means 
+of the differencing filter that renders stationarity in the model and 
+the element \code{fft.xreg}, the Fourier transform of each regressor 
+in \code{dxreg}.
+
+The list \code{xreg} is not used by \code{mloglik.fd}. It is necessary 
+to define this argument in the prototype of the function because when this function 
+is passed to \code{\link[stats]{optim}} along with 
+\code{mloglik.fd.grad}, the argument \code{xreg} is passed to \code{mloglik.fd}
+when it is defined in \code{optim} as an argument to be passed 
+to \code{mloglik.fd.grad}.
+
+Argument \code{xreg} is not currently implemented in functions with 
+concentration of a parameter, \code{mloglik.fd}, \code{mcloglik.fd.deriv}
+and \code{mcloglik.fd.grad}.
+
+Note: \code{modcovgrad} is not available when external regressors are defined 
+in the input model, \code{model}.
 }
 
 \note{

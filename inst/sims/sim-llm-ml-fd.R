@@ -17,11 +17,14 @@
 
 ##NOTE added in optim() convergence if (... || r > maxiter)
 
+library("stsm.class")
 library("stsm")
 
 # load data
 
-data("llm")
+##NOTE
+# requires data set generated in file "datagen-llm.R" in the 
+# same folder as this file
 
 iter <- ncol(llm)
 
@@ -154,8 +157,8 @@ for (i in seq_len(iter))
   # procedure 4: ML-FD BFGS algorithm from 'optim()'
   # NOTE 'count' is recorded (not 'iter')
 
-  try(res4 <- maxlik.fd.optim(m, barrier = bar, inf = 99999, 
-    method = "BFGS", gr = "analytical", hessian = FALSE), silent = TRUE)
+  res4 <- try(maxlik.fd.optim(m, barrier = bar, inf = 99999, 
+    method = "BFGS", gr = "analytical"), silent = TRUE)
 
   if (!inherits(res4, "try-error"))
   {
@@ -173,8 +176,8 @@ for (i in seq_len(iter))
 
   # procedure 5: ML-FD L-BFGS-B algorithm from 'optim()'
 
-  try(res5 <- maxlik.fd.optim(m, barrier = bar, inf = 99999, 
-    method = "L-BFGS-B", gr = "analytical", hessian = FALSE), silent = TRUE)
+  res5 <- try(maxlik.fd.optim(m, barrier = bar, inf = 99999, 
+    method = "L-BFGS-B", gr = "analytical"), silent = TRUE)
 
   # record the path followed by the optimization method
   # using the same stopping criterion as in 'maxlik.fd.scoring()'

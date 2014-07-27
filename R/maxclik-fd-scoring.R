@@ -57,7 +57,7 @@ maxclik.fd.scoring <- function(m, step = NULL,
 
   while (!(convergence || iter > control$maxit))
   {
-    tmp <- mcloglik.fd.deriv(m, TRUE, use.hess, use.gcov)
+    tmp <- mcloglik.fd.deriv(m, gradient = TRUE, hessian = use.hess, infomat = use.gcov)
 
     G <- -tmp$gradient
 
@@ -131,14 +131,17 @@ maxclik.fd.scoring <- function(m, step = NULL,
     attr(steps, "na.action") <- NULL
   }
 
-  # the barrier term is not added to the final likelihood value
-  val <- -mcloglik.fd(x = NULL, model = m, barrier = list(mu = 0))
-  #val <- logLik(object = m, domain = "frequency", barrier = lsit(mu = 0))
+  val <- -mcloglik.fd(x = NULL, model = m, barrier = barrier)
+
+  vcov.type <- switch(info, "expected" = "information matrix", 
+    "observed" = "Hessian")
 
   res <- c(list(call = mcall,
     init = pars0, pars = m@pars, model = m, loglik = val,
     convergence = convergence, iter = iter, message = "",
-    Mpars = Mpars, steps = steps), lsres)
+    Mpars = Mpars, steps = steps), lsres,
+    list(infomat = M, std.errors = sqrt(diag(solve(M))), 
+      vcov.type = vcov.type))
   class(res) <- "stsmFit"
   res
 }

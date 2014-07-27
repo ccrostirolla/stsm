@@ -1,5 +1,7 @@
 
-mcloglik.fd <- function(x, model, 
+##FIXME TODO add "xreg" functionality (currently only in the prototype)
+
+mcloglik.fd <- function(x, model, xreg = NULL,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
 {
   if (!missing(x)) if (!is.null(x))
@@ -38,7 +40,7 @@ mcloglik.fd <- function(x, model,
   mll
 }
 
-mcloglik.fd.deriv <- function(model, 
+mcloglik.fd.deriv <- function(model, xreg = NULL, 
   gradient = TRUE, hessian = TRUE, infomat = TRUE)
 {
 ##TODO 'dtpars'
@@ -114,7 +116,7 @@ mcloglik.fd.deriv <- function(model,
   list(gradient = g, hessian = h, infomat = im)
 }
 
-mcloglik.fd.grad <- function(x, model, inf, barrier)
+mcloglik.fd.grad <- function(x, model, xreg = NULL, inf, barrier)
 #arguments 'inf' and 'barrier' are not used here but it is needed when used within optim 
 #'maxlik.fd.optim' where this function is passed as the gradient
 {

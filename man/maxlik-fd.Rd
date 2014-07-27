@@ -13,12 +13,12 @@ algorithm available in \code{\link[stats]{optim}}.
 }
 
 \usage{
-maxlik.fd.optim(m, xreg = NULL,
+maxlik.fd.optim(m, 
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999, 
   method = c("BFGS", "L-BFGS-B", "Nelder-Mead", "CG", "SANN"), 
-  gr = c("analytical", "numerical"), optim.control = list(), hessian = TRUE)
+  gr = c("analytical", "numerical"), optim.control = list())
 
-maxlik.fd.scoring(m, xreg = NULL, step = NULL, 
+maxlik.fd.scoring(m, step = NULL, 
   information = c("expected", "observed", "mix"),
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   barrier = list(type = c("1", "2"), mu = 0), 
@@ -34,9 +34,6 @@ maxclik.fd.scoring(m, step = NULL, information = c("expected", "observed"),
 \arguments{
 \item{m}{an object of class \code{\link[stsm.class]{stsm}}.}
 %
-\item{xreg}{optional matrix of external regressors with the same number of rows 
-as the length of the input time series \code{m@y}.}
-%
 \item{barrier}{a list defining a barrier term to penalize parameter values close to the bounds 
 \code{m@lower} and \code{m@upper}.}
 %
@@ -48,9 +45,6 @@ function happens to be \code{NA} or non-finite at some iteration of the optimiza
 \item{gr}{character indicating whether numerical or analytical derivatives should be used.}
 %
 \item{optim.control}{a list of control parameters passed to \code{\link[stats]{optim}}.}
-%
-\item{hessian}{logical. If \code{TRUE}, the numerical Hessian evaluated by
-\code{\link[stats]{optim}} at the local optimum is returned.}
 %
 \item{step}{if it is a numeric it stands for a fixed step size, 
 otherwise an automatic procedure is used to choose the step size.}
@@ -132,6 +126,12 @@ be passed through the argument \code{ls}.
 %bounds. It is therefore an alternative to a parameterization for example in terms of 
 %squares of the parameters that will ensure positive variances.}
 %}
+
+\emph{External regressors} 
+If external regressors are included in the model \code{m}, starting values for 
+their coefficients are obtained in a linear regression of the differenced 
+series on the differenced regressors. The values in the slot \code{pars} 
+are therefore overwritten and not used as initial values.
 }
 
 \value{
@@ -169,7 +169,7 @@ If the output is stored for example in an object called \code{res},
 \code{stsm.class::get.pars(res$model)} will return the actual variance parameters.
 
 The version based on \code{optim}, \code{maxlik.fd.optim}, returns also the element
-\code{hessian} (if requested) containing the numerically differentiated Hessian matrix 
+\code{hessian} containing the numerically differentiated Hessian matrix 
 at the local optimum.
 Note that, if the model is parameterized in terms of an auxiliar set of parameters
 and \code{gradient = "numerical"} is used, the Hessian returned by \code{optim} 
@@ -218,8 +218,7 @@ res2 <- maxlik.fd.scoring(m = m, step = NULL,
 res2
 
 # wrapper function for 'optim()' in the 'stats' package
-res3 <- maxlik.fd.optim(m, method = "L-BFGS-B", 
-  gr = "analytical", hessian = FALSE)
+res3 <- maxlik.fd.optim(m, method = "L-BFGS-B", gr = "analytical")
 res3
 
 # concentrating one of the parameters

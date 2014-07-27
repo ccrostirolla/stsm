@@ -12,14 +12,14 @@ algorithm available in \code{\link[stats]{optim}}.
 }
 
 \usage{
-maxlik.td.optim(m, xreg = NULL,
+maxlik.td.optim(m, 
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
   barrier = list(type = c("1", "2"), mu = 0), inf = 99999, 
   method = c("BFGS", "L-BFGS-B", "Nelder-Mead", "CG", "SANN", "AB-NM"),
-  gr = c("numerical", "analytical"), optim.control = list(), hessian = FALSE)
+  gr = c("numerical", "analytical"), optim.control = list())
 
-maxlik.td.scoring(m, xreg = NULL, step = NULL, 
+maxlik.td.scoring(m, step = NULL, 
   KF.args = list(), check.KF.args = TRUE,
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   control = list(maxit = 100, tol = 0.001, trace = FALSE, silent = FALSE), 
@@ -28,9 +28,6 @@ maxlik.td.scoring(m, xreg = NULL, step = NULL,
 
 \arguments{
 \item{m}{an object of class \code{\link[stsm.class]{stsm}}.}
-%
-\item{xreg}{optional matrix of external regressors with the same number of rows 
-as the length of the input time series \code{m@y}.}
 %
 \item{KF.version}{character indicating the implementation of the Kalman filter to be used.}
 %
@@ -51,9 +48,6 @@ function happens to be \code{NA} or non-finite at some iteration of the optimiza
 \item{gr}{character indicating whether numerical or analytical derivatives should be used.}
 %
 \item{optim.control}{a list of control parameters passed to \code{\link[stats]{optim}}.}
-%
-\item{hessian}{logical. If \code{TRUE}, the numerical Hessian evaluated by
-\code{\link[stats]{optim}} at the local optimum is returned.}
 %
 \item{step}{if it is a numeric it stands for a fixed step size, 
 otherwise an automatic procedure is used to choose the step size.}
@@ -99,6 +93,11 @@ the details section of \code{\link{maxlik.fd.scoring}}:
 \emph{Bounds on parameters and barrier term},
 \emph{Control parameters for the scoring algorithm} and
 \emph{Choice of the step size in the scoring algorithm}.
+
+If external regressors are included in the model \code{m}, starting values for 
+their coefficients are obtained in a linear regression of the differenced 
+series on the differenced regressors. The values in the slot \code{pars} 
+are therefore overwritten and not used as initial values.
 
 Note: \code{ls$type = "wolfe"} is not implemented for \code{maxlik.td.scoring}.
 }

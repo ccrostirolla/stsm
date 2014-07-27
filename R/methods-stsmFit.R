@@ -7,14 +7,47 @@ coef.stsmFit <- function(object, ...) {
 
 print.stsmFit <- function(x, digits = max(3L, getOption("digits") - 3L), 
   vcov.type = c("hessian", "infomat", "OPG", "sandwich", "optimHessian"), ...)
-{
-  vcov.type <- match.arg(vcov.type)
-  
+{  
   cat("Call:", deparse(x$call, width.cutoff = 75L), "", sep = "\n")
-  cat("Variance parameters:\n")
+  cat("Parameter estimates:\n")
   rescale <- !is.null(x$model@cpar)
   pars <- c(get.pars(x$model, rescale), get.cpar(x$model, rescale))
   ord <- sort(names(pars))
+
+  # if default method for each method is kept
+
+  if (length(vcov.type) > 1)
+  {
+    res <- rbind(pars[ord], x$std.errors[ord])
+    rownames(res) <- c("Estimate", "Std. error")
+    print.default(res, print.gap = 2L, digits = digits, ...)
+
+    cat("\nLog-likelihood:", 
+      round(x$loglik, digits = digits), "\n")
+    #print.default(x$loglik, print.gap = 2L, digits = digits, ...)
+
+    if (grepl("optim", x$call[1])) {
+      cat("Convergence code:", as.numeric(x$convergence), "\n")
+      if (!is.null(x$message) && x$message != "")
+        cat(x$message, "\n")
+    } else
+      cat("Convergence:", x$convergence, "\n")
+
+    if (grepl("optim", x$call[1])) {
+      cat("Number of function calls:", x$iter[1], "\n")
+    } else
+      cat("Number of iterations:", x$iter, "\n")
+
+    cat("Variance-covariance matrix:", x$vcov.type, "\n")
+
+    #invisible(x)
+    return()
+  }
+
+  # if "vcov.type" is specified by the user
+
+  vcov.type <- match.arg(vcov.type)
+
   #NOTE do not pass 'vcov.type[1]' since method 'vcov()' uses length(vcov.type)
   #to see whether a choice was made or not and then set default value
   if (x$model@model != "trend+ar2")
@@ -28,7 +61,7 @@ print.stsmFit <- function(x, digits = max(3L, getOption("digits") - 3L),
     rownames(res) <- c("Estimate")
     print.default(res, print.gap = 2L, digits = digits, ...)
   }
-  
+
 ##FIXME TODO std.error
   if (!is.null(x$xreg))
   {
@@ -64,10 +97,13 @@ print.stsmFit <- function(x, digits = max(3L, getOption("digits") - 3L),
   } else
     cat("Number of iterations:", x$iter, "\n")
 
+##FIXME print method used for std.errors
+
   invisible(x)
 }
 
-fitted.stsm <- function(object, version = c("KFKSDS", "stats"), ...)
+fitted.stsm <- function(object, std.rediduals = TRUE, 
+  version = c("KFKSDS", "stats"), ...)
 {
   version <- match.arg(version)[1]
 
@@ -94,7 +130,10 @@ fitted.stsm <- function(object, version = c("KFKSDS", "stats"), ...)
           P[i,] <- sqrt(diag(kf$P.upd[id,id,i]))
       P <- ts(P, start = start(y)[1L], frequency = frequency(y))
 
-      resid <- kf$v / sqrt(kf$f)
+      if (std.rediduals) {
+        resid <- kf$v / sqrt(kf$f)
+      } else
+        resid <- kf$v
     },
 
     "stats" = { # based on stats::StructTS
@@ -128,12 +167,14 @@ fitted.stsm <- function(object, version = c("KFKSDS", "stats"), ...)
   res
 }
 
-fitted.stsmFit <- function(object, version = c("KFKSDS", "stats"), ...)
+fitted.stsmFit <- function(object, std.rediduals = TRUE, 
+  version = c("KFKSDS", "stats"), ...)
 {
-  fitted(object$model, version = version, ...)
+  fitted(object$model, std.rediduals, version, ...)
 }
 
-residuals.stsmFit <- function(object, version = c("KFKSDS", "stats"), ...)
+residuals.stsmFit <- function(object, standardised = FALSE, 
+  version = c("KFKSDS", "stats"), ...)
 {
   # the computations are the same as those for obtaining the states,
   # computing the states involves computing the residuals and vice versa,
@@ -143,7 +184,7 @@ residuals.stsmFit <- function(object, version = c("KFKSDS", "stats"), ...)
   # here those computations are a separate task and 
   # they are not done within 'maxlik.fd.scoring'
 
-  fitted(object, version, ...)$residuals
+  fitted(object, standardised, version, ...)$residuals
 }
 
 plot.stsmComponents <- function(x, ...)
@@ -173,6 +214,8 @@ plot.stsmComponents <- function(x, ...)
   }
   #invisible(x)
 }
+
+##FIXME see function in package KFKSDS
 
 predict.stsm <- function(object, n.ahead = 1L, se.fit = TRUE, 
   version = c("KFKSDS", "stats"), ...)

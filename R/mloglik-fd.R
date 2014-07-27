@@ -1,8 +1,13 @@
 
-##FIXME TODO analytical derivatives when xreg!=NULL (see vcov expression in H89)
+##NOTE
+# argument "xreg" is not used in "mloglik.fd"
+# this argument is required when used within "optim"
+# "maxlik.fd.optim" where "xreg" is passed to "mloglik.fd.deriv"
+# when analytical derivatives are used; in that case "xreg" is a list
+# of constant terms, it is not the matrix of external regressors
 
-mloglik.fd <- function(x, model, xreg = NULL,
-  barrier = list(type = c("1", "2"), mu = 0), inf = 99999)
+mloglik.fd <- function(x, model, 
+  barrier = list(type = c("1", "2"), mu = 0), inf = 99999, xreg)
 {
   if (!missing(x)) if (!is.null(x))
     model@pars <- x
@@ -10,30 +15,11 @@ mloglik.fd <- function(x, model, xreg = NULL,
   n <- length(model@diffy)
   pi2 <- 2 * pi
 
-  if (!is.null(xreg))
+  if (!is.null(model@xreg))
   {
-    #stopifnot((NROW(xreg) == length(model@y)) || (NROW(xreg) == length(model@diffy)))
-
-    #xregcoefs <- model@pars[grepl("^xreg", names(model@pars))]
-    allpars <- c(model@pars, model@nopars)
-    id <- match(colnames(xreg), names(allpars))
-    if (any(is.na(id)))
-      stop("column names of ", sQuote("xreg"), " do not match the names of the parameters")
-    xregcoefs <- allpars[id]
-
-    ##NOTE
-    #xreg is overwritten 
-    #an object called for instance "dxreg" could be created but it would involve 
-    #two objects with the same content;
-    #no additional arguments added to function, xreg or differenced xreg is 
-    #deduced from the length/nrows; e.g., xreg is passed already appropriately 
-    #differenced by function maxlik.fd.optim
-    if (NROW(xreg) == length(model@y)) {
-      xreg <- model@fdiff(xreg, frequency(model@y))
-    }
-
-    model@diffy <- model@diffy - xreg %*% cbind(xregcoefs)
-    #in general update only if (!is.null(model@ssd)
+    y2 <- model@y - model@xreg %*% cbind(model@pars[model@ss$xreg])
+    model@diffy <- model@fdiff(y2, frequency(y2))
+    # in general update only if (!is.null(model@ssd))
     model@ssd <- as.vector(Mod(fft(model@diffy))^2 / (pi2 * n))
   }
 
@@ -75,9 +61,7 @@ mloglik.fd <- function(x, model, xreg = NULL,
   mll
 }
 
-##FIXME TODO for non null xreg or at least adapt vcov() to it
-
-mloglik.fd.deriv <- function(model, 
+mloglik.fd.deriv <- function(model, xreg = NULL,
   gradient = TRUE, hessian = TRUE, infomat = TRUE, modcovgrad = TRUE,
   barrier = list(type = c("1", "2"), mu = 0),
   version = c("2", "1"))
@@ -85,8 +69,9 @@ mloglik.fd.deriv <- function(model,
   version <- match.arg(version)[1]
 
   dtpars <- if (version == "1") TRUE else FALSE
-  if (!is.null(model@transPars) && version == "2" && any(gradient, hessian, modcovgrad))
+  if (!is.null(model@transPars) && version == "2" && any(gradient, hessian, modcovgrad)) {
     dtrans <- transPars(model, gradient = gradient, hessian = hessian)
+  } else dtrans <- NULL
 
   pi2 <- 2 * pi
 
@@ -95,10 +80,25 @@ mloglik.fd.deriv <- function(model,
   sgf.d1 <- tmp$gradient
   sgf.d2 <- tmp$hessian
 
+  if (!is.null(model@xreg))
+  {
+    n <- length(model@diffy)
+    xregnms <- model@ss$xreg
+    xregcoefs <- model@pars[xregnms]
+    ncxreg <- ncol(model@xreg)
+
+    #y2 <- model@y - xregmat %*% cbind(xregcoefs)
+    y2 <- model@y - model@xreg %*% cbind(xregcoefs)
+    tmp <- fft(model@fdiff(y2, frequency(y2)))
+    model@ssd <- as.numeric(Mod(tmp)^2 / (pi2 * n))
+
+  } else ncxreg <- 0
+
   if (any(c(gradient, hessian, infomat, modcovgrad)) && barrier$mu != 0)
     bar <- barrier.eval(model, barrier$type, barrier$mu, 
       gradient, (hessian || infomat))
 
+  # if "xreg" is not NULL model@ssd is already defined above
   if (is.null(model@ssd)) {
     pg <- Mod(fft(model@diffy))^2 / (pi2 * length(model@diffy))
   } else
@@ -141,6 +141,38 @@ mloglik.fd.deriv <- function(model,
         d1 <- d1 + barrier$mu * bar$du1
       }
     }
+
+    # xreg
+
+    if (!is.null(model@xreg))
+    {
+      if (is.list(xreg))
+      {
+        if (is.null(xreg$dxreg)) {
+          dxreg <- model@fdiff(model@xreg, frequency(model@y))
+        } else
+          dxreg <- xreg$dxreg
+
+        if (is.null(xreg$fft.dxreg)) {
+          fft.dxreg <- apply(dxreg, 2, fft)
+        } else 
+          fft.dxreg <- xreg$fft.dxreg
+      } else {
+        dxreg <- model@fdiff(model@xreg, frequency(model@y))
+        fft.dxreg <- apply(dxreg, 2, fft)
+      }
+
+      tmp <- as.vector(fft(model@diffy) - fft.dxreg %*% cbind(xregcoefs))
+      #fft(diff(model@y - xcoef * xreg, 4))
+      # "sgf" is independent of xreg
+      part <- -Re(fft.dxreg) * Re(tmp) - Im(fft.dxreg) * Im(tmp)
+      #part <- part / length(model@diffy) #(pi2 * length(model@diffy))
+      #d1xreg <- 2 * pi * sum(part / sgf)
+      d1xreg <- colSums(part / sgf) / n
+      names(d1xreg) <- xregnms
+      d1 <- c(d1, d1xreg)
+    }
+
   } else d1 <- NULL
 
   # second order derivatives
@@ -149,7 +181,7 @@ mloglik.fd.deriv <- function(model,
   {
     tmp1 <- (0.5 - 2 * pipgog) / sgf.sq
     gd1cp <- apply(sgf.d1, MARGIN = 1, FUN = tcrossprod)
-    d2 <- matrix(-colSums(tmp1 * t(gd1cp)), nrow = length(model@pars))
+    d2 <- matrix(-colSums(tmp1 * t(gd1cp)), nrow = length(model@pars) - ncxreg)
     tmp2 <- (-0.5 + pipgog) / sgf
 
 if (model@model %in% c("cycle", "trend-cycle")) {
@@ -158,12 +190,51 @@ if (model@model %in% c("cycle", "trend-cycle")) {
     tmp <- tmp + tmp2[i] * sgf.d2[,,i]
   d2 <- d2 - tmp
 } else {
-    diag(d2) <- diag(d2) - colSums(tmp2 * sgf.d2)
+  ##NOTE
+  # sgf.d2 contains zeros in pure variance model
+  # check it again before removing this line (tmp2 obtained above is not needed)
+  diag(d2) <- diag(d2) - colSums(tmp2 * sgf.d2)
 }
 
     if (!is.null(model@transPars) && version == "2")
       d2 <- tcrossprod(dtrans$gradient) * d2 + d10 * dtrans$hessian
 
+    if (!is.null(model@xreg))
+    {
+      d2varxreg <- NULL
+      for (i in seq_len(ncxreg))
+      {
+        tmp <- -colSums(sgf.d1 * part[,i] / sgf.sq) / n
+        d2varxreg <- rbind(d2varxreg, tmp)
+      }
+
+      d2xregdiag <- colSums(Mod(fft.dxreg)^2 / sgf) / n
+
+      if (ncxreg > 1)
+      {
+        d2xregxreg <- rep(0, ncxreg - 1)
+        for (i in seq_len(ncxreg)) for (j in seq_len(ncxreg))
+        {
+          if (i > j)
+            d2xregxreg[i-1] <- sum((Re(fft.dxreg[,i]) * Re(fft.dxreg[,j]) + 
+              Im(fft.dxreg[,i]) * Im(fft.dxreg[,j])) / sgf) / n
+        }
+
+        d2x.aux <- diag(d2xregdiag)
+        d2x.aux <- diag(d2xregdiag)
+        d2x.aux[lower.tri(d2x.aux)] <- d2xregxreg
+        d2x.aux[upper.tri(d2x.aux)] <- t(d2x.aux)[upper.tri(d2x.aux)]
+        d2x.aux <- rbind(t(d2varxreg), d2x.aux)
+      } else {
+        d2x.aux <- c(d2varxreg, d2xregdiag)
+      }
+
+      d2 <- cbind(rbind(d2, d2varxreg), d2x.aux)
+    }
+
+    rownames(d2) <- colnames(d2) <- names(model@pars)
+
+    ##NOTE see if any changes would be required if xreg is not NULL
     if (barrier$mu != 0)
     {
       if (!is.null(model@lower))
@@ -171,13 +242,15 @@ if (model@model %in% c("cycle", "trend-cycle")) {
       if (!is.null(model@upper))
         diag(d2) <- diag(d2) + barrier$mu * bar$du2
     }
+
   } else d2 <- NULL
 
   if (infomat || modcovgrad)
   {
     if (hessian)
     {
-      gcov <- matrix(0.5 * colSums(t(gd1cp) / sgf.sq), nrow = ncol(d2))
+      # ncol(sgf.d1) or length(model@pars) - ncxreg
+      gcov <- matrix(0.5 * colSums(t(gd1cp) / sgf.sq), nrow = ncol(sgf.d1))
     } else
     {
       gcov <- 0
@@ -199,10 +272,56 @@ if (model@model %in% c("cycle", "trend-cycle")) {
       if (!is.null(model@upper))
         diag(gcov) <- diag(gcov) + barrier$mu * bar$du2
     }
+
+    if (!is.null(model@xreg))
+    {
+      ##NOTE
+      # the Hessian is used, the information matrix for the 
+      # coefficients of regressor would depend on the spectral 
+      # generating function of the regressors 
+
+      if (!hessian)
+      {
+        d2varxreg <- NULL
+        for (i in seq_len(ncxreg))
+        {
+          tmp <- -colSums(sgf.d1 * part[,i] / sgf.sq) / n
+          d2varxreg <- rbind(d2varxreg, tmp)
+        }
+
+        d2xregdiag <- colSums(Mod(fft.dxreg)^2 / sgf) / n
+
+        if (ncxreg > 1)
+        {
+          d2xregxreg <- rep(0, ncxreg - 1)
+          for (i in seq_len(ncxreg)) for (j in seq_len(ncxreg))
+          {
+            if (i > j)
+              d2xregxreg[i-1] <- sum((Re(fft.dxreg[,i]) * Re(fft.dxreg[,j]) + 
+                Im(fft.dxreg[,i]) * Im(fft.dxreg[,j])) / sgf) / n
+          }
+          d2x.aux <- diag(d2xregdiag)
+          d2x.aux <- diag(d2xregdiag)
+          d2x.aux[lower.tri(d2x.aux)] <- d2xregxreg
+          d2x.aux[upper.tri(d2x.aux)] <- t(d2x.aux)[upper.tri(d2x.aux)]
+          d2x.aux <- rbind(t(d2varxreg), d2x.aux)
+        } else {
+          d2x.aux <- c(d2varxreg, d2xregdiag)
+        }
+      }
+
+      gcov <- cbind(rbind(gcov, d2varxreg), d2x.aux)
+      rownames(gcov) <- colnames(gcov) <- names(model@pars)
+    }
+
   } else gcov <- NULL
 
   if (modcovgrad)
   {
+    if (!is.null(model@xreg))
+      stop(sQuote("modcovgrad"), 
+      " is not available with non-null regressors ", sQuote("model@xreg"))
+
     if (!hessian)
       tmp2 <- (-0.5 + pipgog) / sgf
 
@@ -231,16 +350,16 @@ if (model@model %in% c("cycle", "trend-cycle")) {
   list(gradient = d1, hessian = d2, infomat = gcov, modcovgrad = gcovmod)
 }
 
-mloglik.fd.grad <- function(x, model,
+mloglik.fd.grad <- function(x, model, xreg = NULL,
   barrier = list(type = c("1", "2"), mu = 0),
-  inf, xreg)
-#arguments 'inf' and 'xreg' are not used here but it is needed when used within optim 
+  inf)
+#argument 'inf' is not used here but it is needed when used within 'optim'
 #'maxlik.fd.optim' where this function is passed as the gradient
 {
   if (!missing(x)) if (!is.null(x))
     model@pars <- x
 
-  mloglik.fd.deriv(model = model, 
+  mloglik.fd.deriv(model = model, xreg = xreg, 
     gradient = TRUE, hessian = FALSE, infomat = FALSE, modcovgrad = FALSE,
     barrier = barrier, version = "2")$gradient
 }

@@ -1,0 +1,8 @@
+
+The directory "stsm/inst/doc" contains additional documentation 
+and materials about the package.
+
+One the package is installed these documents can be reached  
+through the online documentation (running "help.start()", 
+searching the link for "stsm" and opening the link 
+"User guides, package vignettes and other documentation").

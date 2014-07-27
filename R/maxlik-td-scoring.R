@@ -1,22 +1,20 @@
 
-maxlik.td.scoring <- function(m, xreg = NULL, step = NULL, 
+maxlik.td.scoring <- function(m, step = NULL, 
   KF.args = list(), check.KF.args = TRUE,
   ls = list(type = "optimize", tol = .Machine$double.eps^0.25, cap = 1),
   control = list(maxit = 100, tol = 0.001, trace = FALSE, silent = FALSE), 
   debug = FALSE)
 {
-  barrier <- list(type = "1", mu = 0)
-  mcall <- match.call()
-
   if (!is.null(step) && (step <= 0 || !is.numeric(step)))
     stop("'step' must be a numeric positive value.")
 
-  mfcn.step <- function(x, m, pd, barrier)
-  {
-    m <- set.pars(m, get.pars(m) + x * pd)
+  barrier <- list(type = "1", mu = 0)
+  mcall <- match.call()
 
-    -logLik(object = m, domain = "time", xreg = NULL,
-      td.args = list(KF.version = "KFKSDS", P0cov = FALSE, t0 = 1), FALSE,
+  mll.step <- function(x, m, pd)
+  {
+    mloglik.td(x = m@pars + x * pd, model = m, 
+      KF.version = "KFKSDS", KF.args = KF.args, check.KF.args = FALSE, 
       barrier = list(mu = 0), inf = 99999)
   }
 
@@ -30,54 +28,38 @@ maxlik.td.scoring <- function(m, xreg = NULL, step = NULL,
     warning("unknown names in 'control': ", paste(nocargs, collapse = ", "))
   control <- cargs
 
-  info <- "expected"
-  use.IM <- TRUE
+  # information matrix is used by default
+  #info <- "expected"
+  #use.IM <- TRUE
 
-  lsres <- list(ls.iter = NULL, ls.counts = c("fcn" = 0, "grd" = 0))
+  lsres <- list(ls.iter = NULL, ls.counts = c("fnc" = 0, "grd" = 0))
   lsintv <- c(0, ls$cap)
 
-  pars0 <- m@pars
   convergence <- FALSE
   conv.e1 <- FALSE
   iter <- 0
 
-  # regressor variables (define constant variables)
+  # regressor variables
 
-  ##NOTE
-  # this block is based on same block in function maxlik.fd.scoring()
-
-  if (!is.null(xreg))
+  if (!is.null(m@xreg))
   {
-    # check for safety if a single regressor is passed as a vector
-    if (is.null(dim(xreg)))
-      xreg <- data.matrix(xreg)
-    stopifnot(nrow(xreg) == length(m@y))
+    ##NOTE
+    # this overwrites the values m@pars["xreg"], so they 
+    # are not used as initial values
+    dxreg <- m@fdiff(m@xreg, frequency(m@y))
+    fitxreg <- lm(m@diffy ~ dxreg - 1, na.action = na.omit)
+    m@pars[m@ss$xreg] <- coef(fitxreg)
+  } #else xregcoefs <- NULL
 
-    dxreg <- m@fdiff(xreg, frequency(m@y))
-    y0 <- m@y
-
-    xregcoefs <- coef(lm.fit(x = dxreg, y = m@diffy))
-
-    m@y <- y0 - xreg %*% xregcoefs
-
-  } else
-    xregcoefs <- NULL
+  pars0 <- m@pars
 
   # storage matrices for tracing information
 
-  Mpars <- if (control$trace) rbind(c(m@pars, xregcoefs), 
-    matrix(nrow = control$maxit + 1, 
-      ncol = length(m@pars) + max(0, ncol(xreg)))) else NULL
+  if (control$trace) {
+    Mpars <-  rbind(pars0, 
+      matrix(nrow = control$maxit + 1, ncol = length(pars0))) 
+  } else Mpars <- NULL
   steps <- if (control$trace) rep(NA, control$maxit + 2) else NULL
-
-if (debug)
-{
-  val <- logLik(object = m, domain = "time", 
-    td.args = list(P0cov = FALSE, t0 = 1, KF.version = "KFKSDS"), 
-    barrier = list(mu = 0), inf = 99999)
-  cat(paste("\niter =", iter, "logLik =", round(val, 4), "\n"))
-  print(get.pars(m))
-}
 
   # begin iterative process
 
@@ -85,7 +67,9 @@ j1 <- 1
 
   while (!(convergence || iter > control$maxit))
   {
-    tmp <- mloglik.td.deriv(m, TRUE, use.IM, KF.args, "1", NULL)
+    tmp <- mloglik.td.deriv(model = m, gradient = TRUE, 
+      infomat = TRUE, KF.args = KF.args, version = "1", kfres = NULL)
+##FIXME add option argument convergence = c(0.001, length(model@y)
 
     # gradient
 
@@ -117,13 +101,11 @@ if (debug)
 
       lsout <- switch(ls$type,
 
-      "optimize" = optimize(f = mfcn.step, interval = lsintv, 
-        maximum = FALSE, tol = ls$tol, m = m, pd = pd, 
-        barrier = barrier),
+      "optimize" = optimize(f = mll.step, interval = lsintv, 
+        maximum = FALSE, tol = ls$tol, m = m, pd = pd),
 
       "brent.fmin" = Brent.fmin(a = 0, b = lsintv[2], 
-        fcn = mfcn.step, tol = ls$tol, m = m, pd = pd, 
-        barrier = barrier))
+        fcn = mll.step, tol = ls$tol, m = m, pd = pd))
 
       lambda <- lsout$minimum
       lsres$ls.iter <- c(lsres$ls.iter, lsout$iter)
@@ -156,29 +138,13 @@ if (debug)
         "(not necessarily the same parameter)."))
     }
 
-    # coefficients of regressor variables
-
-    if (!is.null(xreg))
-    {
-      ss <- char2numeric(m)
-      kf <- KF(y0, ss)
-      ks <- KS(y0, ss, kf)
-      dy <- m@fdiff(rowSums(ks$ahat), frequency(m@y))
-      xregcoefs <- coef(lm.fit(x = dxreg, y = dy))
-
-      if (!convergence)
-      {
-        m@y <- y0 - xreg %*% xregcoefs
-      } 
-    }
-
     # trace
 
     iter <- iter + 1
 
     if (control$trace)
     {
-      Mpars[iter+1,] <- c(m@pars, xregcoefs)
+      Mpars[iter+1,] <- pars.new
       steps[iter] <- lambda
     }
 
@@ -195,7 +161,6 @@ if (debug && !is.null(m@lower) && !is.null(m@upper))
 {
   check.bounds(m)
 }
-
   }
 
   if (!control$silent && !convergence)
@@ -212,34 +177,29 @@ if (debug && !is.null(m@lower) && !is.null(m@upper))
 
   # output
 
-  # the barrier term is not added to the final likelihood value
-  # xreg is set to NULL and m@y <- y0 - xreg %*% xregcoefs (done above)
-  # is used, xreg coefficients are not part of the "stsm" model
-  val <- logLik(object = m, domain = "time", xreg = NULL,
-    td.args = c(KF.args, KF.version = "KFKSDS"), check.td.args = TRUE,
-    barrier = list(mu = 0), inf = 99999)
+  val <- -mloglik.td(#x = NULL, 
+    model = m, KF.version = "KFKSDS", 
+    KF.args = KF.args, check.KF.args = FALSE, 
+    barrier = barrier, inf = 99999)
 
-  if (!is.null(xreg))
-  {
-    tmp <- coef(summary(lm(dy ~ 0 + dxreg)))
-
-    xregcoefs <- tmp[,"Estimate"]
-    xregstde <- tmp[,"Std. Error"]
-##FIXME return xregtstat also in function maxlik.fd.scoring
-    xregtstat <- tmp[,"t value"]
-    names(xregcoefs) <- names(xregstde) <- names(xregtstat) <- colnames(xreg)
-    xreg <- list(coef = xregcoefs, stde = xregstde, tstat = xregtstat)
-
-    m@y <- y0
-  }
-
+  if (convergence) {
+    convergence <- "yes"
+  } else
+    convergence <- "maximum number of iterations was reached"
   if (conv.e1)
-    convergence <- FALSE
+    convergence <- "possible convergence problem"
+    #"Over 10 iterations, failure to concergence was caused by just 1 parameter"
+    #"(not necessarily the same parameter)"
+
+  IM <- mloglik.td.deriv(model = m, gradient = FALSE, 
+      infomat = TRUE, KF.args = KF.args, version = "1", kfres = NULL)$infomat
 
   res <- c(list(call = mcall, model = m, 
-    init = pars0, pars = m@pars, xreg = xreg, loglik = val,
+    init = pars0, pars = m@pars, loglik = val,
     convergence = convergence, iter = iter, message = "",
-    Mpars = Mpars, steps = steps), lsres)
+    Mpars = Mpars, steps = steps), lsres, 
+    list(infomat = IM, std.errors = sqrt(diag(solve(IM))), 
+      vcov.type = "information matrix"))
   class(res) <- "stsmFit"
   res
 }

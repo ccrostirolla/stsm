@@ -3,6 +3,8 @@
 #uses length(vcov.type) to see whether a choice was made or not and 
 #set default value for this argument
 
+##FIXME update with xreg, see mloglik.td.deriv
+
 vcov.stsmFit <- function(object, 
   type = c("hessian", "infomat", "OPG", "sandwich", "optimHessian"), ...)
   #domain = c("frequency", "time"), 
@@ -32,10 +34,20 @@ vcov.stsmFit <- function(object,
     } else {
       type <- "hessian"
       warning("The model was not fit by ", sQuote("optim"), 
-      ", hence ", sQuote("type = 'optimHessian'"), " does no apply. ",
+      #"or ", sQuote("hessian"), " was set to FALSE",
+      ", hence, ", sQuote("type = 'optimHessian'"), " cannot be applied. ",
       "Argument ", sQuote("type"), " was changed to ", sQuote("hessian"), ".")
     }
-  }
+  } 
+#   else if (type == "infomat")
+#   {
+#     if (!is.null(object$infomat)) {
+#       res <- solve(object$hessian)
+#       nms <- c(names(object$model@pars), names(object$xreg$coef))
+#       rownames(res) <- colnames(res) <- nms
+#       return(res)
+#     }
+#   }
 
   dogr <- type %in% c("OPG", "sandwich")
   dohe <- type %in% c("hessian", "sandwich")
@@ -53,7 +65,7 @@ vcov.stsmFit <- function(object,
     },
 
     "time" = {
-      if (type == "hessian")
+      if (type == "hessian" || type == "sandwich")
       {
         type <- "infomat"
         doim <- TRUE #type <- "infomat"
@@ -62,6 +74,9 @@ vcov.stsmFit <- function(object,
         sQuote("type = 'infomat'"), ".")
       }
 
+      ##NOTE 
+      # P0cov = FALSE is considered regardless of the value 
+      # in the optimization procedure
       P0cov <- FALSE
 
       res <- mloglik.td.deriv(model = object$model, 

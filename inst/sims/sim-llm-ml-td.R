@@ -16,11 +16,14 @@
 
 ##NOTE added in optim() convergence if (... || r > maxiter)
 
+library("stsm.class")
 library("stsm")
 
 # load data
 
-data("llm")
+##NOTE
+# requires data set generated in file "datagen-llm.R" in the 
+# same folder as this file
 
 iter <- ncol(llm)
 
@@ -134,7 +137,7 @@ for (i in seq_len(iter))
 
   # procedure 3: ML-TD L-BFGS-B algorithm from 'optim()'
 
-  try(res3 <- maxlik.td.optim(m, KF.version = "KFKSDS", 
+  res3 <- try(maxlik.td.optim(m, KF.version = "KFKSDS", 
     KF.args = list(P0cov = FALSE), check.KF.args = TRUE,
     barrier = bar, inf = 99999, method = "L-BFGS-B", gr = "numerical"), 
     silent = TRUE)
@@ -190,7 +193,7 @@ for (i in seq_len(iter))
     #pars = initpars[-2], cpar = initpars[2], nopars = nop, transPars = transP)
     pars = initpars[-1], cpar = initpars[1], nopars = nop, transPars = transP)
 
-  try(res5 <- maxlik.td.optim(mc, KF.version = "KFKSDS", 
+  res5 <- try(maxlik.td.optim(mc, KF.version = "KFKSDS", 
     KF.args = list(P0cov = FALSE), check.KF.args = TRUE,
     barrier = bar, inf = 99999, method = "L-BFGS-B", gr = "numerical"), 
     silent = TRUE)

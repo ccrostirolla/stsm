@@ -1,6 +1,4 @@
 
-##FIXME TODO analytical derivatives when xreg!=NULL
-
 KFconvar <- function(model,
   P0cov = FALSE, barrier = list(type = "1", mu = 0), debug = TRUE)
 {
@@ -44,7 +42,7 @@ KFconvar <- function(model,
   list(mll = mll, cpar = s2)
 }
 
-mloglik.td <- function(x, model, xreg = NULL,
+mloglik.td <- function(x, model, 
   #KF.version = c("KFKSDS", "stats", "StructTS", "KFAS", "FKF", "sspir", "dlm", "dse"),
   KF.version = eval(formals(KFKSDS::KalmanFilter)$KF.version),
   KF.args = list(), check.KF.args = TRUE,
@@ -53,29 +51,10 @@ mloglik.td <- function(x, model, xreg = NULL,
   if (!missing(x)) if(!is.null(x))
     model@pars <- x
 
-  if (!is.null(xreg))
-  {
-##FIXME see svd()
-    #stopifnot(NROW(xreg) == length(model@y))
-
-    #xregcoefs <- model@pars[grepl("^xreg", names(model@pars))]
-    allpars <- c(model@pars, model@nopars)
-    id <- match(colnames(xreg), names(allpars))
-    #if (all(is.na(id))) { }
-    if (any(is.na(id)))
-      stop("column names of ", sQuote("xreg"), " do not match the names of the parameters")
-    xregcoefs <- allpars[id]
-
-##NOTE the time domain works on the original data (not differenced)
-    # if (model@model == "llm+seas") {
-    #   dxreg <- diff(xreg, frequency(model@y))
-    # } else
-    #   stop("TODO")
-    #
-    #model@diffy <- model@diffy - dxreg %*% cbind(xregcoefs)
-    #model@ssd <- as.vector(Mod(fft(model@diffy))^2 / (pi2 * n))
-    model@y <- model@y - xreg %*% cbind(xregcoefs)
-  }
+  if (!is.null(model@xreg)) {
+    y2 <- model@y - model@xreg %*% cbind(model@pars[model@ss$xreg])
+  } else 
+    y2 <- model@y
 
   P0cov <- if (is.null(KF.args$P0cov)) FALSE else KF.args$P0cov
 
@@ -83,7 +62,8 @@ mloglik.td <- function(x, model, xreg = NULL,
   {
     mll <- KFconvar(model, P0cov = P0cov, barrier = barrier, debug = TRUE)$mll
 
-    # "check.KF.args" is ignored
+    # "KF.version" and "check.KF.args" are ignored when a parameter 
+    # is concentrated out of likelihood function
     if (KF.version != "KFKSDS")
       warning("argument 'KF.version = ", KF.version, "' was ignored.")
 
@@ -93,7 +73,7 @@ mloglik.td <- function(x, model, xreg = NULL,
   # Kalman filter
   # evaluate the minus log-likelihood function
 
-  mll <- KalmanFilter(y = model@y, ss = char2numeric(model, P0cov),
+  mll <- KalmanFilter(y = y2, ss = char2numeric(model, P0cov),
     KF.version = KF.version, KF.args = KF.args,
     check.args = check.KF.args, debug = FALSE)$mloglik
 
@@ -110,29 +90,51 @@ mloglik.td <- function(x, model, xreg = NULL,
   if (!is.finite(mll))
     mll <- sign(mll) * inf
 
+  # this is the minus log-lik, penalize with a large positive value
   if (is.na(mll))
-    mll <- abs(inf) #minus log-lik, penalize with a large value
+    mll <- abs(inf)
 
   mll
 }
 
 mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
-  KF.args = list(), version = c("1", "2"), kfres = NULL)
+  KF.args = list(), version = c("1", "2"), kfres = NULL,
+  convergence = c(0.001, length(model@y)))
 {
   version <- match.arg(version)[1]
 
-  dtpars <- TRUE
+  if (!is.null(model@xreg))
+  {
+##FIXME TODO
+    if (!is.null(model@transPars) && model@transPars != "square")
+      stop("Analytical derivatives are not available for model@transPars=", 
+        dQuote(model@transPars))
+
+    xregnms <- model@ss$xreg
+    idxreg <- match(xregnms, names(model@pars))
+    varnms <- names(model@pars[-idxreg])
+    #xreg <- list(xreg = xreg, coefs = model@pars[idxreg])
+    # adjust model@y for "KF.deriv.C" and "transPars" 
+    # "transPars" uses model@y only if model@transPars is "StructTS"
+    model@y <- model@y - model@xreg %*% cbind(model@pars[idxreg])
+  } else {
+    varnms <- names(model@pars)
+  }
+
   if (!is.null(model@transPars) && any(gradient, infomat))
+  {
+    #if (!is.null(xreg) && model@transPars == "StructTS")
+    #  model@y <- model@y - xreg$xreg %*% cbind(xreg$coefs)
     dtrans <- transPars(model, gradient = TRUE, hessian = infomat)
+    if (!is.null(model@xreg))
+      dtrans$gradient[xregnms] <- 0
+  } #else dtrans <- NULL
 
-  np <- length(model@pars)
-
-  if (is.null(kfres)) 
+  if (is.null(kfres))
   {
     P0cov <- if (is.null(KF.args$P0cov)) FALSE else KF.args$P0cov
-
     ss <- char2numeric(model, P0cov)
-    kf <- KF.deriv.C(model@y, ss)
+    kf <- KF.deriv.C(model@y, ss, xreg = model@xreg, convergence = convergence)    
   } else { kf <- kfres }
 
   vof <- kf$v / kf$f
@@ -140,13 +142,15 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
 
   # gradient
 
-  g <- rep(NA, np)
+  g <- model@pars
+  g[] <- NA
 
   if (gradient)
   {
     if (version == "1")
     {
-      for(i in seq(along = g))
+      #for(i in seq(along = g))
+      for(i in varnms)
       {
         part1 <- invf * kf$df[,i] * (1 - vof * kf$v)
         part2 <- kf$dv[,i] * vof
@@ -154,7 +158,8 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
       }
     } else if (version == "2")
     {
-      for(i in seq(along = g))
+      #for(i in seq(along = g))
+      for(i in varnms)
       {
         part1 <- kf$df[,i] / kf$f
         part2 <- kf$dv[,i] * vof
@@ -167,37 +172,71 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
         "is not implemented in 'mloglik.td.deriv'."))
 
     if (!is.null(model@transPars))
+    {
+      #g[varnms] <- g[varnms] * dtrans$gradient
+      # dtrans$gradient[xregnms] is set to zeros above
       g <- g * dtrans$gradient
+    }
+
+    if (!is.null(model@xreg))
+    {
+      if (length(xregnms) == 1) {
+        g[xregnms] <- sum(kf$dv[,xregnms] * vof)
+      } else
+        g[xregnms] <- colSums(kf$dv[,xregnms] * vof)
+    }
   }
 
   # information matrix
 
-  IM <- matrix(nrow = np, ncol = np)
+  IM <- matrix(nrow = length(g), ncol = length(g))
+  rownames(IM) <- colnames(IM) <- names(g)
 
   if (infomat)
   {
     invfsq <- invf^2
-    for(i in seq(np)) for(j in seq(np))
+    #for(i in seq(np)) for(j in seq(np))
+    #for (i in varnms) for (j in varnms)
+    tmp <- cbind(rbind(varnms, varnms), combn(varnms,2))
+    for (ij in seq.int(ncol(tmp)))
     {
+      i <- tmp[1,ij]
+      j <- tmp[2,ij]
       IM[i,j] <- sum(0.5 * invfsq * kf$df[,i] * kf$df[,j])
       IM[i,j] <- IM[i,j] + sum(kf$dv[,i] * kf$dv[,j] * invf)
+      if (i != j)
+        IM[j,i] <- IM[i,j]
     }
 
     if (!is.null(model@transPars))
+    {
+      #IM[varnms,varnms] <- tcrossprod(dtrans$gradient) * IM[varnms,varnms]
       IM <- tcrossprod(dtrans$gradient) * IM
+    }
+
+    if (!is.null(model@xreg))
+    {
+      allnms <- rownames(IM)
+      for (i in allnms) for (j in xregnms)
+        IM[j,i] <- IM[i,j] <- sum(kf$dv[,i] * kf$dv[,j] * invf)
+    }
+
+    #isSymmetric(IM)
   }
 
   list(gradient = g, infomat = IM)
 }
 
 mloglik.td.grad <- function(x, model, KF.version, KF.args = list(), 
-  check.KF.args, barrier, inf, xreg)
+  convergence = c(0.001, length(model@y)),
+  check.KF.args, barrier, inf)
 {
   if (!missing(x)) if(!is.null(x))
     model@pars[] <- x
 
   g <- mloglik.td.deriv(model = model, gradient = TRUE, infomat = FALSE,
-    KF.args = KF.args, version = "1", kfres = NULL)$gradient
+    KF.args = KF.args, version = "1", kfres = NULL,
+    convergence = convergence)$gradient
 
   isna <- is.na(g)
   if (any(isna))

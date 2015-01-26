@@ -40,7 +40,7 @@ mcloglik.fd.grad(x, model, xreg = NULL, inf, barrier)
 This is an auxiliar argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
-\item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
+\item{model}{an object of class \code{\link{stsm}}.}
 %
 \item{xreg}{optional list containing constant terms. See details.}
 %
@@ -189,7 +189,7 @@ concentrated likelihood function.
 \code{\link{barrier.eval}},
 \code{\link{logLik}},
 \code{\link{maxlik.fd}},
-\code{\link[stsm.class]{stsm-class}}.
+\code{\link{stsm}}.
 }
 
 \references{
@@ -201,7 +201,7 @@ Cambridge University Press.
 \examples{
 # define the local level model for Nile time series
 pars <- c("var1" = 11000, "var2" = 1700)
-m <- stsm.class::stsm.model(model = "local-level", y = Nile, pars = pars)
+m <- stsm.model(model = "local-level", y = Nile, pars = pars)
 # 'mloglik.fd' returns the negative of the log-likelihood function
 mloglik.fd(model = m)
 # 'logLik' returns the value of the log-likelihood function
@@ -219,7 +219,7 @@ all.equal(da$hessian, dhn)
 # the same as above for the local level plus seasonal model and 
 # a sample simulated series
 data("llmseas")
-m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas)
+m <- stsm.model(model = "llm+seas", y = llmseas)
 system.time(a <- mloglik.fd.deriv(model = m, gradient = TRUE, hessian = TRUE))
 system.time(g <- numDeriv::grad(func = mloglik.fd, x = m@pars, model = m))
 system.time(h <- numDeriv::hessian(func = mloglik.fd, x = m@pars, model = m))

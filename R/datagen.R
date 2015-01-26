@@ -36,7 +36,10 @@ datagen.stsm <- function(n, model = list(), SigmaEV, labels, n0 = 20, freq = 1,
 
   # iterations to generate data
 
-  a0 <- rep(0, ncol(model$Z))
+  if (!is.null(model$a0)) {
+    a0 <- model$a0
+  } else 
+    a0 <- rep(0, ncol(model$Z))
   for (i in seq(n))
   {
     a0 <- a[i,] <- model$T %*% a0 + Meps[i,]

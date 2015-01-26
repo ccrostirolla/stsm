@@ -7,7 +7,7 @@
 
 \description{
 This method returns the log-likelihood value of a model defined 
-in a \code{\link[stsm.class]{stsm}} object.
+in a \code{\link{stsm}} object.
 }
 
 \usage{
@@ -20,7 +20,7 @@ in a \code{\link[stsm.class]{stsm}} object.
 }
 
 \arguments{
-\item{object}{an object of class \code{\link[stsm.class]{stsm}}.}
+\item{object}{an object of class \code{\link{stsm}}.}
 \item{domain}{a character indicating whether the time domain or the spectral 
 likelihood should be evaluated.}
 \item{xreg}{optional matrix of external regressors with the same number of rows 
@@ -46,7 +46,7 @@ for the given model and the attribute \code{df}, the number of estimated paramet
 \code{\link{mloglik.td}},
 \code{\link{mle}},
 \code{\link[KFKSDS]{KalmanFilter}},
-\code{\link[stsm.class]{stsm-class}}.
+\code{\link{stsm}}.
 }
 
 \keyword{ts}

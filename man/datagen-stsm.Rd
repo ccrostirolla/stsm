@@ -5,7 +5,7 @@
 
 \description{
 This function simulates data from a structural time series model 
-defined in an object of class \code{\link[stsm.class]{stsm}}.
+defined in an object of class \code{\link{stsm}}.
 }
 
 \usage{
@@ -31,8 +31,8 @@ of the package are reproduced.}
 
 \details{
 The matrices in the argument \code{model} must follow the conventions of an object
-of class \code{\link[stsm.class]{stsm}} as returned by
-\code{\link[stsm.class]{char2numeric}}.
+of class \code{\link{stsm}} as returned by
+\code{\link{char2numeric}}.
 
 For compatibility with previous versions of the package, 
 \code{old.version = TRUE} generates random values from the multivariate normal distribution
@@ -48,16 +48,16 @@ of the model.
 
 \seealso{
 \code{\link{sim-data}},
-\code{\link[stsm.class]{stsm-class}}.
+\code{\link{stsm}}.
 }
 
 \examples{
 # generate a quarterly series from a local level plus seasonal model
 # the data set 'llmseas' is generated as follows (first series)
 pars <- c(var1 = 300, var2 = 10, var3 = 100)
-m <- stsm.class::stsm.model(model = "llm+seas", y = ts(seq(120), frequency = 4), 
-  pars = pars, nopars = NULL,)
-ss <- stsm.class::char2numeric(m)
+m <- stsm.model(model = "llm+seas", y = ts(seq(120), frequency = 4), 
+  pars = pars, nopars = NULL)
+ss <- char2numeric(m)
 set.seed(123)
 y <- datagen.stsm(n = 120, model = list(Z = ss$Z, T = ss$T, H = ss$H, Q = ss$Q), 
   n0 = 20, freq = 4, old.version = TRUE)$data

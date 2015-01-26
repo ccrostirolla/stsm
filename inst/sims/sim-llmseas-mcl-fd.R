@@ -13,7 +13,6 @@
 # procedure 4: ML-FD L-BFGS-B algorithm from 'optim()'
 #
 
-library("stsm.class")
 library("stsm")
 
 # load data

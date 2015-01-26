@@ -17,7 +17,6 @@
 
 ##NOTE added in optim() convergence if (... || r > maxiter)
 
-library("stsm.class")
 library("stsm")
 
 # load data

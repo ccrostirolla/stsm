@@ -18,7 +18,7 @@
 
 \description{
 Common methods to print and display results for an object of class 
-\code{\link[stsm.class]{stsm}} or \code{stsmFit} returned by 
+\code{\link{stsm}} or \code{stsmFit} returned by 
 functions \code{\link{maxlik.fd}} and \code{\link{maxlik.fd}}.
 }
 
@@ -41,7 +41,7 @@ functions \code{\link{maxlik.fd}} and \code{\link{maxlik.fd}}.
 }
 
 \arguments{
-\item{object}{an object of class \code{\link[stsm.class]{stsm}} or a \code{stsmFit} list.}
+\item{object}{an object of class \code{\link{stsm}} or a \code{stsmFit} list.}
 \item{x}{a \code{stsmFit} list. For \code{plot} methods it is a list of class 
 \code{stsmComponents}, \code{stsmPredict} or \code{stsmSmooth}.}
 \item{digits}{minimal number of significant digits, see \code{print.default}.}
@@ -66,9 +66,9 @@ returned by \code{\link[stats]{StructTS}} in the \pkg{stats} package.
 %Some of these methods provide information upon the \code{stsmFit} list returned by 
 %\code{\link{maxlik.fd}} and \code{\link{maxlik.td}}. 
 %The data and results are stored in the 
-%\code{\link[stsm.class]{stsm}} object of the output list, which is the 
+%\code{\link{stsm}} object of the output list, which is the 
 %model updated with the optimal parameter values. Hence, these methods 
-%can be either applied on a \code{\link[stsm.class]{stsm}} object or 
+%can be either applied on a \code{\link{stsm}} object or 
 %a \code{stsmFit} list.
 %
 These methods are originally intended to provide summary information from 
@@ -76,7 +76,7 @@ a model fitted by maximum likelihood.
 Thus, the most natural input for them is a \code{stsmFit} list returned by 
 \code{\link{maxlik.fd}} and \code{\link{maxlik.td}}.
 Nevertheless, as the information and the data required by these methods 
-are available in the slots of a \code{\link[stsm.class]{stsm}} object, they 
+are available in the slots of a \code{\link{stsm}} object, they 
 can also be applied directly on an object of class \code{stsm}. 
 This can be useful, for example, when we know a set of parameter estimates 
 that was obtained from a method other than \code{maxlik.fd} or \code{maxlik.td}. 
@@ -87,12 +87,12 @@ are readily available through these methods.
 In most cases, the ellipsis, \code{...}, is kept in the definitions of the methods 
 just because it is part of the parent method. It has some functionality nonetheless.
 For the methods \code{fitted.stsm} and \code{predict.stsm} it can be used to pass 
-argument \code{P0cov} to function \code{\link[stsm.class]{char2numeric}}. 
+argument \code{P0cov} to function \code{\link{char2numeric}}. 
 It can also be used to pass graphical parameters to \code{par} in 
 method \code{plot.stsmComponents} and \code{plot.stsmSmooth} or to \code{plot}
 in \code{plot.stsmPredict} and \code{plot.stsmSmooth}.
 %For \code{coef.stsmFit} and \code{print.stsmFit} it can be used to pass 
-%argument \code{rescale} to \code{\link[stsm.class]{get.pars}}.
+%argument \code{rescale} to \code{\link{get.pars}}.
 
 By default in method \code{fitted}, \code{std.rediduals = TRUE} so that 
 it behaves as in previous versions of the package where this 
@@ -124,14 +124,14 @@ containing the filtered components and residuals.}
 \code{\link{maxlik.fd}},
 \code{\link{maxlik.td}},
 \code{\link{vcov.stsmFit}},
-\code{\link[stsm.class]{stsm-class}}.
+\code{\link{stsm}}.
 }
 
 \examples{
 # fit the local level plus seasonal model to a 
 # sample simulated series
 data("llmseas")
-m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas)
+m <- stsm.model(model = "llm+seas", y = llmseas)
 res <- maxlik.fd.scoring(m = m, step = NULL, 
   information = "expected", control = list(maxit = 100, tol = 0.001))
 print(res)

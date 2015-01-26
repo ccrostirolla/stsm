@@ -32,7 +32,7 @@ maxclik.fd.scoring(m, step = NULL, information = c("expected", "observed"),
 }
 
 \arguments{
-\item{m}{an object of class \code{\link[stsm.class]{stsm}}.}
+\item{m}{an object of class \code{\link{stsm}}.}
 %
 \item{barrier}{a list defining a barrier term to penalize parameter values close to the bounds 
 \code{m@lower} and \code{m@upper}.}
@@ -71,7 +71,7 @@ information matrix, this option may be removed in future versions of the package
 
 \code{maxclik.fd.scoring} maximizes the concentrated likelihood function.
 The parameter to be concentrated must be defined in the slot \code{cpar} of the input 
-model \code{m}, see \code{\link[stsm.class]{stsm}} in package pkg{stsm.class}.
+model \code{m}, see \code{\link{stsm}}.
 \code{maxlik.fd.optim} detects whether \code{cpar} is defined in the input model.
 In the scoring algorithm, if \code{m@cpar} is not \code{NULL} \code{maxclik.fd.scoring} 
 should be used.
@@ -140,7 +140,7 @@ A list of class \code{stsmFit} with components:
 passed to the function.}
 \item{init}{initial parameter values.}
 \item{pars}{parameter values at the local optimum.}
-\item{m}{the \code{\link[stsm.class]{stsm}} model object 
+\item{m}{the \code{\link{stsm}} model object 
 updated with the optimal parameter values.}
 \item{loglik}{the value of the log-likelihood function at the local optimum.}
 \item{convergence}{convergence code returned by \code{\link[stats]{optim}}; for the 
@@ -166,7 +166,7 @@ objective function and the gradient made by the line search procedure in all the
 Note: if \code{m@transPars} is not \code{NULL}, the elements \code{init}
 and \code{pars} are in terms of the auxiliar set of parameters. 
 If the output is stored for example in an object called \code{res},
-\code{stsm.class::get.pars(res$model)} will return the actual variance parameters.
+\code{get.pars(res$model)} will return the actual variance parameters.
 
 The version based on \code{optim}, \code{maxlik.fd.optim}, returns also the element
 \code{hessian} containing the numerically differentiated Hessian matrix 
@@ -182,7 +182,7 @@ is defined with respect to the auxiliar set of parameters, not the variances.
 \seealso{
 \code{\link{barrier.eval}},
 \code{\link{mloglik.fd}},
-\code{\link[stsm.class]{stsm-class}},
+\code{\link{stsm}},
 \code{\link[stats]{optim}}.
 }
 
@@ -205,7 +205,7 @@ data("llmseas")
 
 # initial parameters and 'stsm' model
 initpars <- c(var1 = 1, var2 = 1, var3 = 1)
-m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, pars = initpars)
+m <- stsm.model(model = "llm+seas", y = llmseas, pars = initpars)
 
 # Newton-Raphson algorithm (analytical Hessian)
 res1 <- maxlik.fd.scoring(m = m, step = NULL, 
@@ -225,7 +225,7 @@ res3
 # the model must be first defined accordingly, here 'var1', i.e.,
 # the variance of the disturbance in the observation equation
 # is concentrated, its standard error is reported as 'NA'
-mc <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, 
+mc <- stsm.model(model = "llm+seas", y = llmseas, 
   pars = initpars[-1], cpar = initpars[1])
 res4 <- maxclik.fd.scoring(m = mc, step = NULL, 
     information = "observed", control = list(maxit = 100, tol = 0.001))

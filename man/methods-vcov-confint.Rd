@@ -25,7 +25,7 @@ intervals for those parameters returned by the \code{\link[stsm]{coef.stsmFit}} 
 }
 
 \arguments{
-\item{object}{a \code{stsmFit} list or object of class \code{\link[stsm.class]{stsm}}.}
+\item{object}{a \code{stsmFit} list or object of class \code{\link{stsm}}.}
 %
 \item{type}{a character. In \code{vcov}, it is the type of covariance matrix.
 In \code{confit}, it is the type of confidence intervals: based on the 
@@ -78,7 +78,7 @@ returned by \code{\link[stats]{optim}}.}
 The natural input for the method method \code{vcov} is a \code{stsmFit} 
 list returned by \code{\link{maxlik.fd}} or \code{\link{maxlik.td}}.
 However, \code{vcov} can be also applied directly on a 
-\code{\link[stsm.class]{stsm}} model object.
+\code{\link{stsm}} model object.
 This is useful for example when maximum likelihood parameter estimates 
 are found by means of \code{\link[stats]{optim}} using the functions 
 \code{maxlik.fd.optim} or \code{maxlik.fd.optim}. In that case,
@@ -138,7 +138,7 @@ for the parameters of the model.}
 \code{\link{maxlik.fd}},
 \code{\link{maxlik.td}},
 \code{\link{methods-stsmFit}},
-\code{\link[stsm.class]{stsm-class}}.
+\code{\link{stsm}}.
 }
 
 \references{
@@ -165,7 +165,7 @@ Tinbergen Institute Discussion Papers, No. 2006-105/4.
 data("llmseas")
 # fit the local level plus seasonal model with default arguments
 # using the Newton-Raphson algorithm
-m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas)
+m <- stsm.model(model = "llm+seas", y = llmseas)
 res <- maxlik.fd.scoring(m = m, information = "observed")
 coef(res)
 # confidence intervals for parameter estimates ...

@@ -11,14 +11,15 @@ in the time and frequency domain via different optimization algorithms).
 
 \usage{
 stsmFit(x, stsm.method = c("maxlik.fd.scoring", "maxlik.td.scoring", 
-  "maxlik.fd.optim", "maxlik.td.optim"), ...)
+  "maxlik.fd.optim", "maxlik.td.optim"), xreg = NULL, ...)
 }
 
 \arguments{
-\item{x}{a time series.}
+\item{x}{an object of class \link{stsm}.}
 \item{stsm.method}{a character indicating the method to be used.}
 \item{...}{further arguments to be passed to the the function selected in 
 \code{stsm.method}.}
+\item{xreg}{vector or matrix of external regresors.}
 }
 
 \details{
@@ -33,6 +34,13 @@ Thus, the code is simplified since no \code{switch} or \code{if}
 statements are necessary; the number of arguments is also reduced 
 since those that are passed tot the function specified in 
 \code{stsm.method} are gathered in a list.
+
+The external regressors can be defined in the input object 
+\code{x} of class \link{stsm}. This is the way the recommend specification 
+for functions \link{maxlik.td} and \link{maxlik.fd}. This interface allows 
+defining \code{xreg} as an argument passed to this function because it 
+simplifies the code in some functions of package \pkg{tsoutliers}. 
+If \code{xreg} and \code{x@xreg} are both not \code{NULL} and error is returned.
 }
 
 \value{

@@ -72,7 +72,7 @@ maxlik.fd.optim <- function(m,
     } else 
     if (all(!id.isna))
     { 
-      # required checks wer already made by stsm.class::stsm.model
+      # required checks wer already made by function "stsm.model"
       # when the input model "m" was created
     } else 
     if (any(id.isna))
@@ -126,6 +126,12 @@ maxlik.fd.optim <- function(m,
       res$value <- res$value - bar
     }
   }
+
+  #if (method == "AB-NM") {
+  if (is.null(res$hessian)) {
+    std.errors <- NULL
+  } else
+    std.errors <- sqrt(diag(solve(res$hessian)))
 
   res2 <- c(list(call = mcall, model = m, 
     init = pars0, pars = m@pars, xreg = xreg, loglik = -res$value,

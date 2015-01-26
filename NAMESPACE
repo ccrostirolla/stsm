@@ -25,8 +25,24 @@ mloglik.td.grad,
 mloglik.td.deriv,
 maxlik.td.scoring,
 step.maxsize,
-stsmFit
+stsmFit,
+stsm.model,
+stsm.sgf
 )
+
+exportMethods(
+char2numeric,
+check.bounds,
+get.cpar,
+get.nopars,
+get.pars,
+set.cpar,
+set.nopars,
+set.pars,
+set.sgfc,
+set.xreg,
+show,
+transPars)
 
 importFrom(parallel, detectCores)
 importFrom(parallel, mclapply)
@@ -36,8 +52,7 @@ importFrom(KFKSDS, KF)
 importFrom(KFKSDS, KF.deriv.C)
 importFrom(KFKSDS, KS)
 importFrom(KFKSDS, make.KF.args)
-
-import(stsm.class)
+importFrom(methods, setValidity)
 
 S3method(coef, stsmFit)
 S3method(confint, stsmFit)

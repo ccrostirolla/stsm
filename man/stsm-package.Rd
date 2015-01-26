@@ -48,8 +48,8 @@ optimization algorithm.
 %When possible, the algorithms are enhanced with analytical derivatives.
 %Thus, the package \pkg{stsm} provides algorithms specialized to fit structural time 
 %series models by maximum likelihood.
-Upon the utilities available in the packages \pkg{stsm.class} and \pkg{KFKSDS}, 
-the package \pkg{stsm} implements specific algorithms to fit models in 
+%Upon the utilities available in the packages \pkg{stsm.class} and \pkg{KFKSDS}, 
+The package \pkg{stsm} implements specific algorithms to fit models in 
 the framework of the basic structural time series model. 
 The following enhancements to general purpose optimization algorithms are implemented:
 scoring algorithm based on analytical derivatives, 

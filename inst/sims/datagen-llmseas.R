@@ -23,10 +23,10 @@ seed <- 123
 
 # generate data
 
-m <- stsm.class::stsm.model(model = "llm+seas", y = ts(seq_len(dgp.n), frequency = dgp.s), 
+m <- stsm.model(model = "llm+seas", y = ts(seq_len(dgp.n), frequency = dgp.s), 
   pars = c(var1 = dgp.var1, var2 = dgp.var2, var3 = dgp.var3))
 
-ss <- stsm.class::char2numeric(m, FALSE)
+ss <- char2numeric(m, FALSE)
 SigmaEV <- eigen(ss$Q)
 
 My <- matrix(nrow = dgp.n, ncol = iter)

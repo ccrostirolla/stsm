@@ -18,7 +18,7 @@ maxlik.em(model, type = c("standard", "modified", "mix"),
 }
 
 \arguments{
-\item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
+\item{model}{an object of class \code{\link{stsm}}.}
 \item{type}{a character choosing the implementation of the algorithm, 
 the original (standard), a modified version or a mixture of both.}
 \item{tol}{the convergence tolerance.}
@@ -123,7 +123,7 @@ An Approach to Time Series Smoothing and Forecasting Using the EM Algorithm.
 # the modified version converges in fewer iterations, yet it involves 
 # more computations
 data("llmseas")
-m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, 
+m <- stsm.model(model = "llm+seas", y = llmseas, 
   pars = c(var1 = 1, var2 = 1, var3 = 1))
 
 # original version

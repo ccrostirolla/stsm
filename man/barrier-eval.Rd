@@ -15,7 +15,7 @@ barrier.eval(model, type = c("1", "2"), mu = 0.01,
 }
 
 \arguments{
-\item{model}{object of class \code{\link[stsm.class]{stsm}}.}
+\item{model}{object of class \code{\link{stsm}}.}
 \item{type}{a character indicating the type of barrier term.}
 \item{mu}{the barrier multiplier. A positive value.}
 \item{gradient}{logical. If \code{TRUE}, the first order derivatives of the
@@ -84,12 +84,12 @@ Rardin, R.L. (1998). Section 14.5.
 # are closer to the lower bounds (zero)
 data("llmseas")
 pars <- c("var1" = 30, "var2" = 1, "var3" = 10)
-m1 <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, pars = pars)
+m1 <- stsm.model(model = "llm+seas", y = llmseas, pars = pars)
 bar1 <- barrier.eval(m1, type = "2", mu = 3)
 bar1$barrier
 
 pars <- c("var1" = 0.3, "var2" = 0.01, "var3" = 0.1)
-m2 <- stsm.class::stsm.model(model = "llm+seas", y = llmseas, pars = pars)
+m2 <- stsm.model(model = "llm+seas", y = llmseas, pars = pars)
 bar2 <- barrier.eval(m2, type = "2", mu = 3)
 bar2$barrier
 

@@ -33,7 +33,7 @@ mloglik.td.grad(x, model, KF.version, KF.args = list(),
 This is an auxiliar argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
-\item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
+\item{model}{an object of class \code{\link{stsm}}.}
 %
 \item{KF.version}{character indicating the implementation of the Kalman filter to be used.}
 %
@@ -173,7 +173,7 @@ This function is suited to be passed as the gradient function to
 \code{\link{barrier.eval}},
 \code{\link{logLik}},
 \code{\link{maxlik.td}},
-\code{\link[stsm.class]{stsm-class}},
+\code{\link{stsm}},
 \code{\link[KFKSDS]{KalmanFilter}},
 \code{\link[stats]{KalmanLike}}.
 }
@@ -191,7 +191,7 @@ Cambridge University Press.
 \examples{
 # local level plus seasonal model for a sample simulated series
 data("llmseas")
-m <- stsm.class::stsm.model(model = "llm+seas", y = llmseas,
+m <- stsm.model(model = "llm+seas", y = llmseas,
   pars = c("var1" = 300, "var2" = 10, "var3" = 100))
 # evaluate the time domain likelihood function using 
 # excluding the contributions of the first 8 observations

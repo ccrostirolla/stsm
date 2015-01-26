@@ -9,7 +9,6 @@
 # and the numerical derivative do not match exactly
 # use 'mcloglik.fd()' and 'mcloglik.fd.deriv()'
 
-library("stsm.class")
 library("stsm")
 library("numDeriv")
 
@@ -24,7 +23,7 @@ bar <- list(type = "1", mu = 0)
 #bar <- list(type = "1", mu = 0.01)
 #bar <- list(type = "2", mu = 0.01)
 
-m <- stsm.class::stsm.model(model = "BSM", y = y, pars = pars, nopars = nopars, 
+m <- stsm.model(model = "BSM", y = y, pars = pars, nopars = nopars, 
   transPars = transP)
 
 get.pars(m)

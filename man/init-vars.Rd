@@ -13,7 +13,7 @@ init.vars(model, debug = FALSE)
 }
 
 \arguments{
-\item{model}{an object of class \code{\link[stsm.class]{stsm}}.}
+\item{model}{an object of class \code{\link{stsm}}.}
 \item{debug}{logical. If \code{TRUE}, the correctness if the result is double-checked.}
 }
 
@@ -33,7 +33,7 @@ the linear regression.
 
 \seealso{
 \code{\link{maxlik.fd}},
-\code{\link[stsm.class]{stsm.sgf}}.
+\code{\link{stsm.sgf}}.
 }
 
 \references{

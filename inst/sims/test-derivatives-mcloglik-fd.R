@@ -10,7 +10,6 @@
 # according to a non-null 'transPars'
 # a barrier term is not considered either
 
-library("stsm.class")
 library("stsm")
 library("numDeriv")
 

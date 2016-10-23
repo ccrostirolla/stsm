@@ -1,4 +1,23 @@
 
+Changes in version 1.9 2016-10-23
+-----------------------------------
+
+  o Added "using namespace std" (requested by CRAN maintainers).
+
+  o Added several "importFrom()" to the NAMESPACE.
+
+Changes in version 1.8 2015-09-27
+-----------------------------------
+
+  o Method "char2numeric" returns the element called "parsNames" 
+    containing the names of the vector "pars"
+    (to be used by "KFKSDS::KF.deriv" so that the derivatives 
+    with respect to elements defined in "pars" are returned).
+
+  o Method "char2numeric" returns a list element called "id" containing 
+    the index in the vector "pars" of the variance parameters, 
+    AR coefficients or initial state vector.
+
 Changes in version 1.7 2015-01-26
 -----------------------------------
 

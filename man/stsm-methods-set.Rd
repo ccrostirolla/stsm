@@ -48,12 +48,12 @@ in the matrix \code{xreg}.}
 \emph{Models parameterized with non-null \code{transPars}.}
 If the model is parameterized according to a non-null value 
 of the slot \code{transPars}, the argument \code{v} 
-must contain the values of the auxiliar set of parameters \eqn{\theta}
+must contain the values of the auxiliary set of parameters \eqn{\theta}
 rather than the actual parameters (variances and autoregressive coefficients).
 For example, with \code{x@transPars = "square"} the variances are \eqn{\theta^2}.
 Although this design may seem to disagree with the 
 getter methods \code{\link{stsm-get-methods}}, 
-the relevant input for the setter methods is actually the auxiliar values \eqn{\theta}. 
+the relevant input for the setter methods is actually the auxiliary values \eqn{\theta}. 
 Be aware that if \code{transPars} is not null the parameters are 
 transformed by \code{get.pars} according to the selected parameterization. 
 Therefore, \code{v} must be referred to the non-transformed parameters.

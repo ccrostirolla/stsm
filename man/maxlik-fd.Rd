@@ -164,16 +164,16 @@ objective function and the gradient made by the line search procedure in all the
 (It is \code{NULL} if \code{ls$type = "optimize"}.)}
 
 Note: if \code{m@transPars} is not \code{NULL}, the elements \code{init}
-and \code{pars} are in terms of the auxiliar set of parameters. 
+and \code{pars} are in terms of the auxiliary set of parameters. 
 If the output is stored for example in an object called \code{res},
 \code{get.pars(res$model)} will return the actual variance parameters.
 
 The version based on \code{optim}, \code{maxlik.fd.optim}, returns also the element
 \code{hessian} containing the numerically differentiated Hessian matrix 
 at the local optimum.
-Note that, if the model is parameterized in terms of an auxiliar set of parameters
+Note that, if the model is parameterized in terms of an auxiliary set of parameters
 and \code{gradient = "numerical"} is used, the Hessian returned by \code{optim} 
-is defined with respect to the auxiliar set of parameters, not the variances. 
+is defined with respect to the auxiliary set of parameters, not the variances. 
 %FIXME see
 %For the \sQuote{L-BFGS-B} method, the following note from \code{\link[stats]{optim}} applies,
 %\emph{this is the Hessian of the unconstrained problem even if the box constraints are active}.

@@ -10,7 +10,7 @@ This is a wrapper function to constructor \code{\link[methods]{new}}.
 
 \usage{
 stsm.model(model = c("local-level", "local-trend", "BSM", 
-  "llm+seas", "trend+ar2"),
+  "llm+seas", "trend+ar2", "level+AR2", "level+drift+AR2"),
   y, pars = NULL, nopars = NULL, cpar = NULL, xreg = NULL, 
   lower = NULL, upper = NULL, transPars = NULL,
   ssd = FALSE, sgfc = FALSE)

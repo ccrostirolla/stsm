@@ -18,24 +18,26 @@ Get access to the information stored in the slots \code{cpar}, \code{nopars} and
 \usage{
 \S4method{get.cpar}{stsm}(x, rescale = FALSE)
 \S4method{get.nopars}{stsm}(x, rescale = FALSE)
-\S4method{get.pars}{stsm}(x, rescale = FALSE)
+\S4method{get.pars}{stsm}(x, rescale = FALSE, gradient = FALSE)
 }
 
 \arguments{
 \item{x}{an object of class \code{\link{stsm}}.}
 \item{rescale}{logical. If \code{TRUE}, relative variance parameters are 
 rescaled into absolute variances. Ignored if \code{x@cpar} is null.}
+\item{gradient}{logical. If \code{TRUE}, first order derivatives of 
+\code{\link{transPars}} with respect to the parameters in the slot \code{pars} are returned.}
 }
 
 \details{
 \emph{Transformation of the parameters of the model.}
 The method \code{\link{transPars}} allows parameterizing the model 
-in terms of an auxiliar vector of parameters.
+in terms of an auxiliary vector of parameters.
 The output of \code{get.pars} is returned in terms of the actual parameters of the model, i.e.,
 the variances and the autoregressive coefficients if they are part of the model.
 With the standard parameterization, \code{x@transPars = NULL}, \code{get.pars(x)} returns 
 the output stored in \code{x@pars}.
-When the model is parameterized in terms of an auxiliar set of parameters 
+When the model is parameterized in terms of an auxiliary set of parameters 
 \eqn{\theta}, \code{get.pars} return the variance parameters instead of the values of 
 \eqn{\theta} that are stored in \code{x@pars}.
 For example, with \code{x@transPars = "square"} (where the variances are \eqn{\theta^2}),
@@ -111,10 +113,10 @@ m@pars
 get.pars(m)
 
 # model parameterized, the variances are the square
-# of an auxiliar vector of parameters
+# of an auxiliary vector of parameters
 m <- stsm.model(model = "llm+seas", y = JohnsonJohnson, 
   pars = c("var1" = 2, "var2" = 15, "var3" = 30), transPars = "square")
-# auxiliar vector of parameters
+# auxiliary vector of parameters
 m@pars
 # parameters of the model, variances
 get.pars(m)

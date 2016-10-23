@@ -48,7 +48,7 @@ See example below.}
 \details{
 Rather than using the standard parameterization of the model
 (in terms of variances and autoregressive coefficients if they are part of the model),
-it can be parameterized in terms of an auxiliar set of parameters \eqn{\theta}.
+it can be parameterized in terms of an auxiliary set of parameters \eqn{\theta}.
 This may be useful for example when the parameters of the model 
 are selected by means of a numerical optimization algorithm. Choosing a suitable 
 parameterization ensures that the solution returned by the algorithm meets
@@ -89,7 +89,7 @@ An example of \code{ftrans} is given below.
 
 \emph{Note:} If a transformation is defined by means of \code{ftrans}
 the user may need to update the slots \code{lower} and \code{upper}
-if some bounds are still applied to the auxiliar parameters. For example,
+if some bounds are still applied to the auxiliary parameters. For example,
 \code{transPars="StructTS"} does not always yield positive variances and
 hence lower bounds equal to \code{0} are needed. By default lower and upper
 bounds are not considered if \code{ftrans} is used.
@@ -98,7 +98,7 @@ bounds are not considered if \code{ftrans} is used.
 The output of \code{\link{get.pars}} is given in terms of 
 the actual parameters of the model.
 For example, if the model is parameterized so that \eqn{\theta^2} are the
-variances of the model and \eqn{\theta} are the auxiliar parameters then, 
+variances of the model and \eqn{\theta} are the auxiliary parameters then, 
 the slot \code{pars} contains the values of \eqn{\theta} and 
 \code{ger.pars} returns \eqn{\theta^2}.
 
@@ -133,7 +133,7 @@ m@lower
 # square transformation
 # negative values are allowed in 'pars' since 
 # the square will yield positive variances
-# in fact no lower bounds need to be imposed on the auxiliar parameters
+# in fact no lower bounds need to be imposed on the auxiliary parameters
 m <- stsm.model(model = "llm+seas", y = JohnsonJohnson, 
   pars = c("var1" = -2, "var2" = -5, "var3" = 10), transPars = "square")
 validObject(m)

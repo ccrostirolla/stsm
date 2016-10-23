@@ -37,7 +37,7 @@ mcloglik.fd.grad(x, model, xreg = NULL, inf, barrier)
 
 \arguments{
 \item{x}{a numeric vector containing the parameters of the model.
-This is an auxiliar argument so that this function can be used as input
+This is an auxiliary argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
 \item{model}{an object of class \code{\link{stsm}}.}
@@ -109,7 +109,7 @@ Second order derivatives are given by:
 (d g(\lambda[j]))/(d \theta')
 }
 
-The argument \code{x} is an auxiliar vector that is necessary in some contexts. 
+The argument \code{x} is an auxiliary vector that is necessary in some contexts. 
 For example, the input to function \code{\link[stats]{optim}} must contain
 as first argument the vector of parameters where optimization is performed.
 If it is not required or is redundant information contained in \code{model@pars} 

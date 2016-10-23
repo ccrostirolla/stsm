@@ -70,7 +70,7 @@ in \code{pars}, \code{nopars} and \code{cpar}.}
 \code{lower} and \code{upper} bounds.}
 %
 \item{\code{get.pars}}{Return the slot \code{pars}, the parameters of the model.
-If the model is parameterized in terms of a set of auxiliar parameters such as those considered 
+If the model is parameterized in terms of a set of auxiliary parameters such as those considered 
 in \code{\link{transPars}}, then the transformed parameters are returned.
 Thus, when the slot \code{transPars} is not \code{NULL} 
 \code{x@pars} will not be equal to \code{get.pars(x)}.}

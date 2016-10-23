@@ -1,9 +1,10 @@
 
-setGeneric("get.pars", function(x, rescale = FALSE){
+setGeneric("get.pars", function(x, rescale = FALSE, gradient = FALSE){
   standardGeneric("get.pars") })
-setMethod("get.pars", "stsm", function(x, rescale = FALSE)
+setMethod("get.pars", "stsm", function(x, rescale = FALSE, gradient = FALSE)
 {
-  p <- transPars(x, gradient = FALSE, hessian = FALSE)$pars
+  tmp <- transPars(x, gradient = gradient, hessian = FALSE)
+  p <- tmp$pars
 
   if (rescale)
   {
@@ -18,7 +19,11 @@ setMethod("get.pars", "stsm", function(x, rescale = FALSE)
     }
   }
 
-  p
+  # gradient=TRUE is used by char2numeric (see note there)
+  if (gradient)
+    return(list(pars = p, gradient = tmp$gradient))
+
+  p  
 })
 
 setGeneric("get.nopars", function(x, rescale = FALSE){ 
@@ -331,7 +336,20 @@ setMethod("char2numeric", "stsm", function(x, P0cov = FALSE, rescale = FALSE)
     m
   }
 
-  pars <- get.pars(x, rescale)
+  # gradient=TRUE is helpful when "char2numeric" is used to 
+  # create "ss" to be passed is called in "KF.deriv";
+  # returning here the gradient avoids a second call to this 
+  # function in order to get the gradient
+  
+  getgrad <- !is.null(x@transPars)
+  pars <- get.pars(x, rescale, getgrad)
+  if (getgrad)
+  {
+    tpGradient <- pars$gradient
+    pars <- pars$pars    
+  } #else # this case is arranged at the end of this function
+    #tpGradient <- NULL
+
 ##FIXME check (changed after renamed to 'rescale')
   allpars <- c(pars, get.cpar(x, rescale), get.nopars(x, rescale))
   allnames <- names(allpars)
@@ -421,6 +439,60 @@ setMethod("char2numeric", "stsm", function(x, P0cov = FALSE, rescale = FALSE)
     ss$P0 <- diag(c(allpars["P01"], allpars["P02"], 
       allpars["P03"], allpars["P04"]))
 
+#NOTE allpars["P0i"] is ignored
+#P0 <- diag(4)
+#P0[1,1] <- 100000000
+#tmp <- solve(diag(4) - kronecker(ss$T[c(3,4),c(3,4)], ss$T[c(3,4),c(3,4)])) %*% as.vector(ss$Q[c(3,4),c(3,4)])
+#P0[c(3,4),c(3,4)] <- matrix(tmp, nrow=2, ncol=2)
+#NOTE non-zero values outside the diagonal ??? maybe, because cov23 != 0
+#ss$P0 <- P0
+
+  } else 
+  if (x@model == "level+AR2")
+  {
+    ss$Vid <- NULL
+    ss$Qid <- NULL
+
+    p <- 2
+    ss$T <- rbind(c(1, 0, 0), c(0, allpars[c("phi1", "phi2")]), c(0,1,0))      
+    ss$H <- allpars["var1"]
+    ss$V <- diag(c(allpars["var2"], allpars["var3"]))
+    ss$Q <- rbind(cbind(ss$V, 0), 0)
+    ss$a0 <- c(allpars["a01"], allpars["a02"], allpars["a03"])
+    ss$P0 <- diag(c(allpars["P01"], allpars["P02"], allpars["P03"]))
+
+  } else
+  if (x@model == "level+drift+AR2")
+  {
+    ss$Vid <- NULL
+    ss$Qid <- NULL
+
+    #NOTE code of original paper uses allpars["vari"]^2 
+    #i.e., the model is parameterized in terms of standar deviations
+    #here in term of variances, also relevant in transPars
+
+    p <- 2
+    ss$T <- rbind(c(1, 0, 0), c(0, allpars[c("phi1", "phi2")]), c(0,1,0))      
+    ss$H <- allpars["var1"]
+    ss$V <- diag(c(allpars["var2"], allpars["var3"]))
+    ss$V[1,2] <- ss$V[2,1] <- allpars["cov23"]
+    ss$Q <- rbind(cbind(ss$V, 0), 0)
+    ss$Q[1,2] <- ss$Q[2,1] <- allpars["cov23"]
+    ss$a0 <- c(allpars["a01"], allpars["a02"], allpars["a03"])
+    #ss$P0 <- diag(c(allpars["P01"], allpars["P02"], allpars["P03"]))
+
+    ss$mu <- c(allpars["drift"], 0, 0)
+
+##NOTE allpars["P0i"] are ignored
+#http://www.trigconsulting.co.uk/gauss/man_algebra.html
+P0 <- diag(3)
+P0[1,1] <- 100000000
+tmp <- solve(diag(4) - kronecker(ss$T[-1,-1], ss$T[-1,-1])) %*% as.vector(ss$Q[-1,-1])
+P0[-1,-1] <- matrix(tmp, nrow=2, ncol=2)
+##FIXME non-zero values outside the diagonal ??? maybe, because cov23 != 0
+#but the non-zero off-diagonal element seems to be located in a place other that than the cell related to cov23
+ss$P0 <- P0
+
   } else ##NOTE currently this option is not used
   {
     ss$Z <- ss.fill(ss$Z, allpars, allnames)
@@ -451,6 +523,41 @@ setMethod("char2numeric", "stsm", function(x, P0cov = FALSE, rescale = FALSE)
 
   if (P0cov)
     ss$P0[] <- ss$P0[1]
+
+  pnms <- names(pars)
+  ss$parsNames <- pnms
+  ss$id <- list(
+    var = grep("^var\\d{1,2}$", pnms),
+    phi = grep("^phi\\d{1,2}$", pnms),
+    a0 = grep("^a0\\d{1,2}$", pnms))
+
+  if (!getgrad)
+  {
+    # define a vector arranged to be used by "KF.deriv"
+    # this output is intended to save doing the arrangements "KF.deriv",
+    # which is likely to be called several times and is already more demanding
+    #
+    # when model@transPars is NULL 
+    # the derivative with respect to the variance parameter 
+    # is retured, 1, (not the derivative of transPars with respect the auxiliary
+    # parameter, which would be 0 if no transformation or reparameterization is used);
+    # this way is more convenient when this output used by "KF.deriv"
+    
+    tpg.var <- rep(1, length(ss$id$var))
+    names(tpg.var) <- pnms[ss$idvar]
+    #ss$tpGradient <- list(var = tpg.var, phi1 = NULL, phi2 = NULL)
+    ss$tpGradient <- list(var = tpg.var)
+
+  } else {
+    #ss$tpGradient <- tpGradient
+    if (is.matrix(tpGradient)) # then "phi1" and "phi2" are defined in "pars"
+    {
+      ss$tpGradient <- list(var = diag(tpGradient)[ss$id$var],
+        phi1 = tpGradient["phi1",c("phi1","phi2")], 
+        phi2 = tpGradient["phi2",c("phi1","phi2")])
+    } else 
+      ss$tpGradient <- list(var = tpGradient)
+  }
 
   class(ss) <- "stsmSS"
   ss

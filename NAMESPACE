@@ -41,7 +41,6 @@ set.nopars,
 set.pars,
 set.sgfc,
 set.xreg,
-show,
 transPars)
 
 importFrom(parallel, detectCores)
@@ -53,6 +52,14 @@ importFrom(KFKSDS, KF.deriv.C)
 importFrom(KFKSDS, KS)
 importFrom(KFKSDS, make.KF.args)
 importFrom(methods, setValidity)
+importFrom("graphics", "abline", "lines", "par", "plot", "polygon")
+importFrom("methods", "new", "validObject")
+importFrom("stats", "Box.test", "KalmanSmooth", "acf", "coef",
+  "constrOptim", "fft", "frequency", "is.ts", "lm", "lm.fit",
+  "na.omit", "na.pass", "optim", "optimize", "qnorm",
+  "quantile", "rchisq", "rnorm", "start", "time", "ts",
+  "ts.union", "tsp", "uniroot", "var")
+importFrom("utils", "combn")
 
 S3method(coef, stsmFit)
 S3method(confint, stsmFit)

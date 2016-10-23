@@ -9,6 +9,8 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_linalg.h>
 
+using namespace std;
+
 //from /usr/share/R/include/Rmath.h
 #ifndef M_2PI
 #define M_2PI		6.283185307179586476925286766559	/* 2*pi */

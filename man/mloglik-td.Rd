@@ -30,7 +30,7 @@ mloglik.td.grad(x, model, KF.version, KF.args = list(),
 
 \arguments{
 \item{x}{a numeric vector containing the parameters of the model.
-This is an auxiliar argument so that this function can be used as input
+This is an auxiliary argument so that this function can be used as input
 to \code{\link[stats]{optim}}.}
 %
 \item{model}{an object of class \code{\link{stsm}}.}
@@ -115,7 +115,7 @@ For \code{mloglik.td.deriv}, the only element that is used if provided in
 \code{KF.args} is \code{P0cov} (a logical indicating whether the covariance matrix 
 of the initial state vector diagonal or not).
 
-The argument \code{x} is an auxiliar vector that is necessary in some contexts. 
+The argument \code{x} is an auxiliary vector that is necessary in some contexts. 
 For example, the input to function \code{\link[stats]{optim}} must contain
 as first argument the vector of parameters where optimization is performed.
 If it is not required or is redundant information contained in \code{model@pars} 

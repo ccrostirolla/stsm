@@ -25,7 +25,7 @@ representation = representation(
 )
 
 stsm.model <- function(model = c("local-level", "local-trend", "BSM", 
-  "llm+seas", "trend+ar2"),
+  "llm+seas", "trend+ar2", "level+AR2", "level+drift+AR2"),
   y, pars = NULL, nopars = NULL, cpar = NULL, xreg = NULL,
   lower = NULL, upper = NULL, transPars = NULL, 
   ssd = FALSE, sgfc = FALSE)
@@ -48,8 +48,11 @@ stsm.model <- function(model = c("local-level", "local-trend", "BSM",
   vy <- var(y, na.rm = TRUE) / 100
   vyl <- 1e6 * vy
 
+  mu <- NULL
+
   switch(model,
 
+    # local level model (random walk plus noise)
     "local-level" = 
     {
       diffy <- diff(y)
@@ -68,6 +71,7 @@ stsm.model <- function(model = c("local-level", "local-trend", "BSM",
       nopars0 <- c("a01" = y1, "P01" = vyl)
     },
 
+    # local trend model (local level model with a drift following a random walk)
     "local-trend" = 
     {
       diffy <- diff(diff(y))
@@ -90,6 +94,7 @@ stsm.model <- function(model = c("local-level", "local-trend", "BSM",
       nopars0 <- c("a01" = y1, "a02" = 0, "P01" = vyl, "P02" = vyl)
     },
 
+    # basic structural time series model (local trend model plus a seasonal component)
     "BSM" = 
     {
       s <- frequency(y)
@@ -119,6 +124,7 @@ stsm.model <- function(model = c("local-level", "local-trend", "BSM",
       nopars0 <- c("a01" = y1, nopars0)
     },
 
+    # local level model plus seasonal component
     "llm+seas" = 
     {
       s <- frequency(y)
@@ -148,14 +154,15 @@ stsm.model <- function(model = c("local-level", "local-trend", "BSM",
       nopars0 <- c("a01" = y1, nopars0)
     },
 
-    "trend+ar2" = # Clark's:87 model 
+    # Clark's 1987 model (local trend model plus AR(2) transitory component)
+    "trend+ar2" = 
     {
       diffy <- diff(diff(y))
       fdiff <- function(x, s) diff(diff(x))
       p <- 2
       Z <- rbind(c(1, 0, 1, rep(0, p - 1)))
       mT <- rbind(c(1, 1, rep(0, p)), c(0, 1, rep(0, p)),
-        c(0, 0, paste("phi", seq(1, p), sep = "")), 
+        c(0, 0, paste("phi", seq_len(p), sep = "")), 
         cbind(0, 0, diag(p - 1), 0))
       H <- paste(type, 1, sep = "")
       #Q <- diag(c(paste(type, 2:4, sep = ""), 0))
@@ -165,19 +172,73 @@ stsm.model <- function(model = c("local-level", "local-trend", "BSM",
       #V <- diag(c(paste(type, 2:4, sep = "")))
       V <- diag(3)
       diag(V) <- c(paste(type, 2:4, sep = ""))
-      a0 <- paste("a0", seq(1, 2 + p), sep = "")
+      a0 <- paste("a0", seq_len(2 + p), sep = "")
       #P0 <- diag(paste("P0", seq(1, 2 + p), sep = ""))
       P0 <- diag(2 + p)
-      diag(P0) <- paste("P0", seq(1, 2 + p), sep = "")
+      diag(P0) <- paste("P0", seq_len(2 + p), sep = "")
 
       pars0 <- c("var1" = 1, "var2" = 1, "var3" = 1, "var4" = 1,
         "phi1" = 0.5, "phi2" = 0.5)
       nopars0 <- c("a01" = y1, "a02" = 0, "a03" = 0, "a04" = 0, 
         "P01" = vy, "P02" = vy, "P03" = vy, "P04" = vy)
+    },
+
+#devel
+    # random walk trend plus AR(2) transitory component
+    "level+AR2" = 
+    {
+      diffy = diff(y)
+      fdiff <- function(x, s) diff(x)
+      p <- 2
+      Z <- rbind(c(1, 1, rep(0, p-1)))
+      mT <- rbind(c(1,0,0), c(0, paste("phi", seq_len(p), sep = "")), c(0,1,0))
+      H <- paste(type, 1, sep = "")
+      Q <- diag(3)
+      diag(Q) <- c(paste(type, 2:3, sep = ""), 0)
+      R <- rbind(diag(2), c(0,0))
+      V <- diag(2)
+      diag(V) <- c(paste(type, 2:3, sep = ""))
+      a0 <- paste("a0", seq_len(1 + p), sep = "")
+      P0 <- diag(1 + p)
+      diag(P0) <- paste("P0", seq_len(1 + p), sep = "")
+
+      pars0 <- c("var1" = 1, "var2" = 1, "var3" = 1,
+        "phi1" = 0.5, "phi2" = 0.5)
+      nopars0 <- c("a01" = y1, "a02" = 0, "a03" = 0,
+        "P01" = vy, "P02" = vy, "P03" = vy)
+    },
+
+#devel
+    # random walk with drift plus AR(2) transitory component 
+    # application in Morley, Zivot and Nelson (2003)
+    "level+drift+AR2" = 
+    {
+      diffy = diff(y)
+      fdiff <- function(x, s) diff(x)
+      p <- 2
+      Z <- rbind(c(1, 1, rep(0, p-1)))
+      mT <- rbind(c(1,0,0), c(0, paste("phi", seq_len(p), sep = "")), c(0,1,0))
+      H <- paste(type, 1, sep = "")
+      Q <- diag(3)
+      diag(Q) <- c(paste(type, 2:3, sep = ""), 0)
+      Q[1,2] <- Q[2,1] <- "cov23"
+      R <- rbind(diag(2), c(0,0))
+      V <- diag(2)
+      diag(V) <- c(paste(type, 2:3, sep = ""))
+      V[1,2] <- V[2,1] <- "cov23"
+      a0 <- paste("a0", seq_len(1 + p), sep = "")
+      P0 <- diag(1 + p)
+      diag(P0) <- paste("P0", seq_len(1 + p), sep = "")
+      mu <- c("drift", rep("0", p))
+
+      pars0 <- c("var1" = 1, "var2" = 1, "var3" = 1, "cov23" = 1,
+        "phi1" = 0.5, "phi2" = 0.5, "drift" = 0)
+      nopars0 <- c("a01" = y1, "a02" = 0, "a03" = 0,
+        "P01" = vy, "P02" = vy, "P03" = vy)
     }
   )
 
-  ss <- list(Z = Z, T = mT, H = H, R = R, V = V, Q = Q, a0 = a0, P0 = P0)
+  ss <- list(mu = mu, Z = Z, T = mT, H = H, R = R, V = V, Q = Q, a0 = a0, P0 = P0)
 
   allpars0 <- c(pars0, nopars0)
 

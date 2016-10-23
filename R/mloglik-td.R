@@ -112,16 +112,17 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
 
     xregnms <- model@ss$xreg
     idxreg <- match(xregnms, names(model@pars))
-    varnms <- names(model@pars[-idxreg])
+    pnms <- names(model@pars[-idxreg])
     #xreg <- list(xreg = xreg, coefs = model@pars[idxreg])
     # adjust model@y for "KF.deriv.C" and "transPars" 
     # "transPars" uses model@y only if model@transPars is "StructTS"
     model@y <- model@y - model@xreg %*% cbind(model@pars[idxreg])
   } else {
-    varnms <- names(model@pars)
+    pnms <- names(model@pars)
   }
 
-  if (!is.null(model@transPars) && any(gradient, infomat))
+  #if (!is.null(model@transPars) && any(gradient, infomat))
+  if (!is.null(model@transPars) && infomat)
   {
     #if (!is.null(xreg) && model@transPars == "StructTS")
     #  model@y <- model@y - xreg$xreg %*% cbind(xreg$coefs)
@@ -134,8 +135,11 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
   {
     P0cov <- if (is.null(KF.args$P0cov)) FALSE else KF.args$P0cov
     ss <- char2numeric(model, P0cov)
+##FIXME TODO KF.deriv.C for model "trend+ar2", based on KF.deriv
+#currently "kfres" obtained via "KF.deriv"  must be passed as input
     kf <- KF.deriv.C(model@y, ss, xreg = model@xreg, convergence = convergence)    
-  } else { kf <- kfres }
+  } else
+    kf <- kfres
 
   vof <- kf$v / kf$f
   invf <- 1 / kf$f
@@ -150,16 +154,17 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
     if (version == "1")
     {
       #for(i in seq(along = g))
-      for(i in varnms)
+      for(i in pnms)
       {
         part1 <- invf * kf$df[,i] * (1 - vof * kf$v)
         part2 <- kf$dv[,i] * vof
         g[i] <- sum(0.5 * part1 + part2)
       }
-    } else if (version == "2")
+    } else 
+    if (version == "2")
     {
       #for(i in seq(along = g))
-      for(i in varnms)
+      for(i in pnms)
       {
         part1 <- kf$df[,i] / kf$f
         part2 <- kf$dv[,i] * vof
@@ -167,16 +172,44 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
         part4 <- vof * kf$dv[,i]
         g[i] <- 0.5 * sum(part1 + part2 - part3 + part4)
       }
-    } else
-      stop(paste("version", sQuote(version), 
-        "is not implemented in 'mloglik.td.deriv'."))
+    } #else
+      #stop(paste("version", sQuote(version), 
+      #  "is not implemented in 'mloglik.td.deriv'."))
 
-    if (!is.null(model@transPars))
-    {
-      #g[varnms] <- g[varnms] * dtrans$gradient
-      # dtrans$gradient[xregnms] is set to zeros above
-      g <- g * dtrans$gradient
-    }
+    ##NOTE
+    # in a previous version, the derivatives returned by KF.deriv 
+    # were computed with respect the variance parameters, not with 
+    # respect the auxiliary parameters (if model@transPars is not NULL)
+    # that was convenient models where the transformation done by transPars 
+    # is independent for each parameter, for example, square the variances,
+    # in that case the derivative of mloglik with respect the auxiliary parameters
+    # can be obtained here easily just as done below, g * dtrans$gradient;
+    # but for transPars where the transformation of one parameter depends on 
+    # the other (e.g., transformation of AR coefficients to remain in the region 
+    # of stationarity) this approach is not valid and the arrangements must 
+    # be done in KF.deriv, which is not that troublesome anyway; thus, 
+    # KF.deriv has been updated and now returns the derivatives of 
+    # the elements in the Kalman filter (v, f, a.pred,...) with respect 
+    # to the auxiliary parameters and, hence, rescaling as done in the 
+    # "if" statement commented below, g <- g * dtrans$gradient,
+    # is not necessary 
+    #
+    #if (!is.null(model@transPars))
+    #{
+    #  #g[pnms] <- g[pnms] * dtrans$gradient
+    #  # dtrans$gradient[xregnms] is set to zeros above
+    #
+    #  # derivatives with respect to "a0" or to parameters that 
+    #  # are not transformed are zero, change to 1 so that the values in "g"
+    #  # are kept and are not cancelled;
+    #  # this could be set to one already by "transPars" but do this way 
+    #  # to avoid confusion with the output (the derivative is 0, not 1)
+    #  
+    #  id0 <- which(dtrans$gradient == 0)
+    #  if (length(id0) > 0)
+    #    dtrans$gradient[id0] <- 1
+    #  g <- g * dtrans$gradient
+    #}
 
     if (!is.null(model@xreg))
     {
@@ -197,7 +230,7 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
     invfsq <- invf^2
     #for(i in seq(np)) for(j in seq(np))
     #for (i in varnms) for (j in varnms)
-    tmp <- cbind(rbind(varnms, varnms), combn(varnms,2))
+    tmp <- cbind(rbind(pnms, pnms), combn(pnms,2))
     for (ij in seq.int(ncol(tmp)))
     {
       i <- tmp[1,ij]
@@ -210,7 +243,10 @@ mloglik.td.deriv <- function(model, gradient = TRUE, infomat = TRUE,
 
     if (!is.null(model@transPars))
     {
-      #IM[varnms,varnms] <- tcrossprod(dtrans$gradient) * IM[varnms,varnms]
+##FIXME see
+#crossprod(A, solve(res$hessian * n.used, A))
+
+      #IM[varnms,varnms] <- tcrossprod(dtrans$gradient) * IM[varnms,varnms]      
       IM <- tcrossprod(dtrans$gradient) * IM
     }
 

@@ -49,12 +49,12 @@ round(get.pars(res$model) * 10000, 3)
 %#  0.000  7.719  0.000 13.969 
 
 Details about the methodology and algorithms implemented in the package are 
-given \href{http://www.jalobe.com:8080/doc/stsm.pdf}{in this document}.
+given \href{http://www.jalobe.com/doc/stsm.pdf}{in this document}.
 
 As a preliminary introduction and discussion see these posts:
-\href{http://www.jalobe.com:8080/blog/optimization-algorithms-to-fit-a-structural-time-series-model/}{%
+\href{http://www.jalobe.com/blog/optimization-algorithms-to-fit-a-structural-time-series-model/}{%
 optimization algorithms to fit a structural time seriesmodel} and 
-\href{http://www.jalobe.com:8080/blog/variations-on-a-maximum-likelihood-procedure/}{%
+\href{http://www.jalobe.com/blog/variations-on-a-maximum-likelihood-procedure/}{%
 variations on a maximum likelihood procedure}.
 
 \end{document}
